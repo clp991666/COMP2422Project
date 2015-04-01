@@ -8,6 +8,37 @@
 
     <!-- Latest compiled JavaScript -->
     <script src="js/bootstrap.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+    <script src="js/date.js"></script>
+    <script>
+        function fetchRecord(activity) {
+            var prefix = activity.substr(0, 1).toUpperCase();
+            return { "Shaw": randomSlots(prefix), "Kwong On": randomSlots(prefix), "Hall": randomSlots(prefix) };
+        }
+
+        function randomSlots(prefix) {
+            var today = Date.today();
+            var result = {};
+            for (var i = 0; i < 7; i++) {
+                var date = today.addDays(i);
+                if (date.getDay() != 0 && today.getDay() != 6) {
+                    var day = result[today.toString("yyyy-MM-dd")] = {};
+                    date.set({ hour: 8, minute: 30 });
+                    for (var h = 0; h < 11; h++) {
+                        if (Math.random() > .7) continue;
+                        var time = date.add({ hours: h });
+                        var slots = day[time.toString("HH:mm")] = [];
+                        for (var court = 1; court <= 10; court++) {
+                            if (Math.random() > .4) continue;
+                            slots.push(prefix + ("00" + court.toString()).slice(-2));
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+    </script>
     <script type="text/javascript">
         var date;
         var start = 22;
@@ -178,6 +209,7 @@
                 <div class="form-horizontal">
                     <div class="form-group">
                         <label for="type" class="col-xs-2 control-label text-left">Activity:</label>
+
                         <div class="col-xs-9">
                             <select class="form-control" id="type">
                                 <option>Badminton</option>
