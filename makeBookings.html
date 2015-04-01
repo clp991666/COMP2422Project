@@ -13,36 +13,58 @@
     <script src="js/date.js"></script>
     <script>
         function fetchRecord(activity) {
+            // fake records generator
+
+            var today = Date.today();
+            var dates = [];
+            var times = [];
+            var d;
+            for (var i = 0; i < 7; i++) {
+                d = today.addDays(i);
+                if (d.getDay() != 0 && d.getDay() != 6)
+                    dates.push(d.toString("yyyy-MM-dd"));
+            }
+            for (var h = 8; h <= 21; h++) {
+                d.set({ hour: h, minute: 30 });
+                times.push(d.toString("HH:mm"));
+            }
             var prefix = activity.substr(0, 1).toUpperCase();
-            return { "Shaw": randomSlots(prefix), "Kwong On": randomSlots(prefix), "Hall": randomSlots(prefix) };
+            return {
+                dates: dates,
+                times: times,
+                venues: {
+                    "Shaw": randomSlots(prefix, dates, times),
+                    "Kwong On": randomSlots(prefix, dates, times),
+                    "Hall": randomSlots(prefix, dates, times)
+                }
+            };
         }
 
-        function randomSlots(prefix) {
-            var today = Date.today();
+        function randomSlots(prefix, dates, times) {
+            // fake records generator
+
             var result = {};
-            for (var i = 0; i < 7; i++) {
-                var date = today.addDays(i);
-                if (date.getDay() != 0 && today.getDay() != 6) {
-                    var day = result[today.toString("yyyy-MM-dd")] = {};
-                    date.set({ hour: 8, minute: 30 });
-                    for (var h = 0; h < 11; h++) {
-                        if (Math.random() > .7) continue;
-                        var time = date.add({ hours: h });
-                        var slots = day[time.toString("HH:mm")] = [];
+            for (var d = 0; d < dates.length; d++) {
+                var date = dates[d];
+                var day = result[date] = {};
+
+                for (var t = 0; t < times.length; t++) {
+                    var time = times[t];
+                    var slots = day[time] = [];
+                    if (Math.random() > .5)
                         for (var court = 1; court <= 10; court++) {
                             if (Math.random() > .4) continue;
                             slots.push(prefix + ("00" + court.toString()).slice(-2));
                         }
-                    }
                 }
+
             }
             return result;
         }
     </script>
     <script type="text/javascript">
-        var date;
-        var start = 22;
-        var end = 9;
+        var records = {};
+        var selected = {};
 
         $("document").ready(function () {
             changeTable("#table0");
@@ -71,10 +93,10 @@
         }
 
         function changeTable(table) {
-            var t = $(table);
+            var t = $("#tables [table='" + table + "']");
             $('table').not(t).removeClass('active');
             t.addClass('active');
-            var x = $("li[table=" + table + "]");
+            var x = $("li[table='" + table + "']");
             x.parent().find("li").removeClass("active");
             x.addClass("active");
         }
@@ -83,9 +105,51 @@
             alert("Right click");
         }
 
-        function selectSlot(target) {
+        function selectSlot(target, date, time) {
             target = $(target);
             target.toggleClass("checked");
+            var key = date + " " + time;
+            if (target.hasClass("checked")) {
+                if (!selected.hasOwnProperty(key))
+                    selected[key] = {};
+            } else {
+                delete selected[key];
+            }
+        }
+
+        function populateTimetables(data) {
+            var tabs = $("#tableTabs");
+            var tables = $("#tables");
+            tabs.empty();
+            tables.empty();
+
+            var first = null;
+            for (var k in data.venues) {
+                if (!data.venues.hasOwnProperty(k)) continue;
+
+                if (first == null) first = k; // get the first table
+                // nav tab
+                var tab = $("<li role=\"presentation\"></li>")
+                        .attr("table", k)
+                        .append($('<a href="javascript:void(0)" onclick="changeTable(this.parentNode.getAttribute(\'table\'))"></a>').text(k));
+                tabs.append(tab);
+                // table
+                var table = $('<table class="table table-condensed table-bordered"></table>').attr("table", k);
+                populateTimetable(table, data.dates, data.dates, data.times, data.times,
+                        function (d, t) {
+                            return data.venues[k].hasOwnProperty(d)
+                                    && data.venues[k][d].hasOwnProperty(t)
+                                    && data.venues[k][d][t].length > 0;
+                        },
+                        function (d, t) {
+                            var key = d + " " + t;
+                            return selected.hasOwnProperty(key) && selected[key].length > 0;
+                        });
+                tables.append(table);
+            }
+
+            // preselect first table
+            changeTable(first);
         }
 
         function populateTimetable(table, dates, dateLabels, times, timeLabels,
@@ -104,12 +168,12 @@
                 var tr = $("<tr></tr>");
                 tr.append($("<th scope=\"row\"></th>").text(timeLabels[i]));
                 for (var j = 0; j < dates.length; j++) {
-                    var td = $("<td></td>").attr("date", dates[i]).attr("time", times[j]);
-                    if (slotAvailableCallback(dates[i], times[j])) {
+                    var td = $("<td></td>").attr("date", dates[j]).attr("time", times[i]);
+                    if (slotAvailableCallback(dates[j], times[i])) {
                         td.addClass("success");
-                        td.attr("onclick", "selectSlot(this)");
+                        td.attr("onclick", "selectSlot(this, this.getAttribute('date'), this.getAttribute('time'))");
                     }
-                    if (slotCheckedCallback(dates[i], times[j])) {
+                    if (slotCheckedCallback(dates[j], times[i])) {
                         td.addClass("checked");
                     }
                     tr.append(td);
@@ -120,18 +184,8 @@
         }
 
         $(function () {
-            populateTimetable("#bookingTable #table0",
-                    [1, 2, 3],
-                    ["1d", "2d", "3d"],
-                    [0, 1, 2, 3, 4, 5],
-                    [0, 1, 2, 3, 4, 5],
-                    function () {
-                        return Math.random() > .5;
-                    }, function () {
-                        return Math.random() > .5;
-                    }
-            );
-        })
+            $("#type").trigger("change");
+        });
 
     </script>
 
@@ -211,7 +265,8 @@
                         <label for="type" class="col-xs-2 control-label text-left">Activity:</label>
 
                         <div class="col-xs-9">
-                            <select class="form-control" id="type">
+                            <select class="form-control" id="type"
+                                    onchange="populateTimetables(fetchRecord($(this).val()))">
                                 <option>Badminton</option>
                                 <option>Fitness training</option>
                                 <option>Activities Room</option>
@@ -222,7 +277,7 @@
                 </div>
             </div>
             <div id="bookingTable" class="col-sm-12 col-xs-12 table-responsive">
-                <ul class="nav nav-tabs">
+                <ul id="tableTabs" class="nav nav-tabs"><!--
                     <li role="presentation" table="#table0">
                         <a href="#"
                            onclick="changeTable(this.parentNode.getAttribute('table'))">shaw</a>
@@ -234,209 +289,211 @@
                     <li role="presentation" table="#table2">
                         <a href="#"
                            onclick="changeTable(this.parentNode.getAttribute('table'))">Student
-                            Hall</a></li>
+                            Hall</a></li>-->
                 </ul>
-                <table class="table table-condensed table-bordered" id="table0">
-                    <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>22</th>
-                        <th>23</th>
-                        <th>24</th>
-                        <th>25</th>
-                        <th>26</th>
-                        <th>27</th>
-                        <th>28</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <th scope="row">9</th>
-                        <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td date="24/3" startTime="9" endTime="10"></td>
-                        <td date="25/3" startTime="9" endTime="10"></td>
-                        <td date="26/3" startTime="9" endTime="10"></td>
-                        <td date="27/3" startTime="9" endTime="10"></td>
-                        <td date="28/3" startTime="9" endTime="10"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">10</th>
-                        <td date="22/3" startTime="10" endTime="11"></td>
-                        <td date="23/3" startTime="10" endTime="11"></td>
-                        <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="10" endTime="11"></td>
-                        <td date="27/3" startTime="10" endTime="11"></td>
-                        <td date="28/3" startTime="10" endTime="11"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">11</th>
-                        <td date="22/3" startTime="11" endTime="12"></td>
-                        <td date="23/3" startTime="11" endTime="12"></td>
-                        <td class="success" onclick=checked(this) date="24/3" startTime="11" endTime="12"></td>
-                        <td class="success" onclick=checked(this) date="25/3" startTime="11" endTime="12"></td>
-                        <td date="26/3" startTime="11" endTime="12"></td>
-                        <td date="27/3" startTime="11" endTime="12"></td>
-                        <td date="28/3" startTime="11" endTime="12"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">12</th>
-                        <td date="22/3" startTime="12" endTime="13"></td>
-                        <td date="23/3" startTime="12" endTime="13"></td>
-                        <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="12" endTime="13"></td>
-                        <td date="27/3" startTime="12" endTime="13"></td>
-                        <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">13</th>
-                        <td date="22/3" startTime="13" endTime="14"></td>
-                        <td date="23/3" startTime="13" endTime="14"></td>
-                        <td date="24/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="13" endTime="14"></td>
-                        <td date="27/3" startTime="13" endTime="14"></td>
-                        <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                    </tr>
+                <div id="tables"><!--
+                    <table class="table table-condensed table-bordered" id="table0">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>22</th>
+                            <th>23</th>
+                            <th>24</th>
+                            <th>25</th>
+                            <th>26</th>
+                            <th>27</th>
+                            <th>28</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">9</th>
+                            <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td date="24/3" startTime="9" endTime="10"></td>
+                            <td date="25/3" startTime="9" endTime="10"></td>
+                            <td date="26/3" startTime="9" endTime="10"></td>
+                            <td date="27/3" startTime="9" endTime="10"></td>
+                            <td date="28/3" startTime="9" endTime="10"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">10</th>
+                            <td date="22/3" startTime="10" endTime="11"></td>
+                            <td date="23/3" startTime="10" endTime="11"></td>
+                            <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="10" endTime="11"></td>
+                            <td date="27/3" startTime="10" endTime="11"></td>
+                            <td date="28/3" startTime="10" endTime="11"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">11</th>
+                            <td date="22/3" startTime="11" endTime="12"></td>
+                            <td date="23/3" startTime="11" endTime="12"></td>
+                            <td class="success" onclick=checked(this) date="24/3" startTime="11" endTime="12"></td>
+                            <td class="success" onclick=checked(this) date="25/3" startTime="11" endTime="12"></td>
+                            <td date="26/3" startTime="11" endTime="12"></td>
+                            <td date="27/3" startTime="11" endTime="12"></td>
+                            <td date="28/3" startTime="11" endTime="12"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">12</th>
+                            <td date="22/3" startTime="12" endTime="13"></td>
+                            <td date="23/3" startTime="12" endTime="13"></td>
+                            <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="12" endTime="13"></td>
+                            <td date="27/3" startTime="12" endTime="13"></td>
+                            <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">13</th>
+                            <td date="22/3" startTime="13" endTime="14"></td>
+                            <td date="23/3" startTime="13" endTime="14"></td>
+                            <td date="24/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="13" endTime="14"></td>
+                            <td date="27/3" startTime="13" endTime="14"></td>
+                            <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                        </tr>
 
-                    </tbody>
-                </table>
-                <table class="table table-condensed table-bordered" id="table1">
-                    <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>22</th>
-                        <th>23</th>
-                        <th>24</th>
-                        <th>25</th>
-                        <th>26</th>
-                        <th>27</th>
-                        <th>28</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <th scope="row">9</th>
-                        <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td date="24/3" startTime="9" endTime="10"></td>
-                        <td date="25/3" startTime="9" endTime="10"></td>
-                        <td date="26/3" startTime="9" endTime="10"></td>
-                        <td date="27/3" startTime="9" endTime="10"></td>
-                        <td date="28/3" startTime="9" endTime="10"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">10</th>
-                        <td date="22/3" startTime="10" endTime="11"></td>
-                        <td date="23/3" startTime="10" endTime="11"></td>
-                        <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="10" endTime="11"></td>
-                        <td date="27/3" startTime="10" endTime="11"></td>
-                        <td date="28/3" startTime="10" endTime="11"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">11</th>
-                        <td date="22/3" startTime="11" endTime="12"></td>
-                        <td date="23/3" startTime="11" endTime="12"></td>
-                        <td class="success" onclick=checked(this) date="24/3" startTime="11" endTime="12"></td>
-                        <td class="success" onclick=checked(this) date="25/3" startTime="11" endTime="12"></td>
-                        <td date="26/3" startTime="11" endTime="12"></td>
-                        <td date="27/3" startTime="11" endTime="12"></td>
-                        <td date="28/3" startTime="11" endTime="12"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">12</th>
-                        <td date="22/3" startTime="12" endTime="13"></td>
-                        <td date="23/3" startTime="12" endTime="13"></td>
-                        <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="12" endTime="13"></td>
-                        <td date="27/3" startTime="12" endTime="13"></td>
-                        <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">13</th>
-                        <td date="22/3" startTime="13" endTime="14"></td>
-                        <td date="23/3" startTime="13" endTime="14"></td>
-                        <td date="24/3" startTime="13" endTime="14"></td>
-                        <td date="25/3" startTime="13" endTime="14"></td>
-                        <td date="26/3" startTime="13" endTime="14"></td>
-                        <td date="27/3" startTime="13" endTime="14"></td>
-                        <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                    </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-condensed table-bordered" id="table1">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>22</th>
+                            <th>23</th>
+                            <th>24</th>
+                            <th>25</th>
+                            <th>26</th>
+                            <th>27</th>
+                            <th>28</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">9</th>
+                            <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td date="24/3" startTime="9" endTime="10"></td>
+                            <td date="25/3" startTime="9" endTime="10"></td>
+                            <td date="26/3" startTime="9" endTime="10"></td>
+                            <td date="27/3" startTime="9" endTime="10"></td>
+                            <td date="28/3" startTime="9" endTime="10"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">10</th>
+                            <td date="22/3" startTime="10" endTime="11"></td>
+                            <td date="23/3" startTime="10" endTime="11"></td>
+                            <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="10" endTime="11"></td>
+                            <td date="27/3" startTime="10" endTime="11"></td>
+                            <td date="28/3" startTime="10" endTime="11"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">11</th>
+                            <td date="22/3" startTime="11" endTime="12"></td>
+                            <td date="23/3" startTime="11" endTime="12"></td>
+                            <td class="success" onclick=checked(this) date="24/3" startTime="11" endTime="12"></td>
+                            <td class="success" onclick=checked(this) date="25/3" startTime="11" endTime="12"></td>
+                            <td date="26/3" startTime="11" endTime="12"></td>
+                            <td date="27/3" startTime="11" endTime="12"></td>
+                            <td date="28/3" startTime="11" endTime="12"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">12</th>
+                            <td date="22/3" startTime="12" endTime="13"></td>
+                            <td date="23/3" startTime="12" endTime="13"></td>
+                            <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="12" endTime="13"></td>
+                            <td date="27/3" startTime="12" endTime="13"></td>
+                            <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">13</th>
+                            <td date="22/3" startTime="13" endTime="14"></td>
+                            <td date="23/3" startTime="13" endTime="14"></td>
+                            <td date="24/3" startTime="13" endTime="14"></td>
+                            <td date="25/3" startTime="13" endTime="14"></td>
+                            <td date="26/3" startTime="13" endTime="14"></td>
+                            <td date="27/3" startTime="13" endTime="14"></td>
+                            <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                        </tr>
 
-                    </tbody>
-                </table>
-                <table class="table table-condensed table-bordered" id="table2">
-                    <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>22</th>
-                        <th>23</th>
-                        <th>24</th>
-                        <th>25</th>
-                        <th>26</th>
-                        <th>27</th>
-                        <th>28</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <th scope="row">9</th>
-                        <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
-                        <td date="24/3" startTime="9" endTime="10"></td>
-                        <td date="25/3" startTime="9" endTime="10"></td>
-                        <td date="26/3" startTime="9" endTime="10"></td>
-                        <td date="27/3" startTime="9" endTime="10"></td>
-                        <td date="28/3" startTime="9" endTime="10"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">10</th>
-                        <td date="22/3" startTime="10" endTime="11"></td>
-                        <td date="23/3" startTime="10" endTime="11"></td>
-                        <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="10" endTime="11"></td>
-                        <td date="27/3" startTime="10" endTime="11"></td>
-                        <td date="28/3" startTime="10" endTime="11"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">11</th>
-                        <td date="22/3" startTime="11" endTime="12"></td>
-                        <td date="23/3" startTime="11" endTime="12"></td>
-                        <td date="24/3" startTime="11" endTime="12"></td>
-                        <td date="25/3" startTime="11" endTime="12"></td>
-                        <td date="26/3" startTime="11" endTime="12"></td>
-                        <td date="27/3" startTime="11" endTime="12"></td>
-                        <td date="28/3" startTime="11" endTime="12"></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">12</th>
-                        <td date="22/3" startTime="12" endTime="13"></td>
-                        <td date="23/3" startTime="12" endTime="13"></td>
-                        <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="12" endTime="13"></td>
-                        <td date="27/3" startTime="12" endTime="13"></td>
-                        <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">13</th>
-                        <td date="22/3" startTime="13" endTime="14"></td>
-                        <td date="23/3" startTime="13" endTime="14"></td>
-                        <td date="24/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                        <td date="25/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                        <td date="26/3" startTime="13" endTime="14"></td>
-                        <td date="27/3" startTime="13" endTime="14"></td>
-                        <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
-                    </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-condensed table-bordered" id="table2">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>22</th>
+                            <th>23</th>
+                            <th>24</th>
+                            <th>25</th>
+                            <th>26</th>
+                            <th>27</th>
+                            <th>28</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">9</th>
+                            <td class="success" date="22/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td class="success" date="23/3" startTime="9" endTime="10" onclick=checked(this)></td>
+                            <td date="24/3" startTime="9" endTime="10"></td>
+                            <td date="25/3" startTime="9" endTime="10"></td>
+                            <td date="26/3" startTime="9" endTime="10"></td>
+                            <td date="27/3" startTime="9" endTime="10"></td>
+                            <td date="28/3" startTime="9" endTime="10"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">10</th>
+                            <td date="22/3" startTime="10" endTime="11"></td>
+                            <td date="23/3" startTime="10" endTime="11"></td>
+                            <td date="24/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="10" endTime="11" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="10" endTime="11"></td>
+                            <td date="27/3" startTime="10" endTime="11"></td>
+                            <td date="28/3" startTime="10" endTime="11"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">11</th>
+                            <td date="22/3" startTime="11" endTime="12"></td>
+                            <td date="23/3" startTime="11" endTime="12"></td>
+                            <td date="24/3" startTime="11" endTime="12"></td>
+                            <td date="25/3" startTime="11" endTime="12"></td>
+                            <td date="26/3" startTime="11" endTime="12"></td>
+                            <td date="27/3" startTime="11" endTime="12"></td>
+                            <td date="28/3" startTime="11" endTime="12"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">12</th>
+                            <td date="22/3" startTime="12" endTime="13"></td>
+                            <td date="23/3" startTime="12" endTime="13"></td>
+                            <td date="24/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="12" endTime="13"></td>
+                            <td date="27/3" startTime="12" endTime="13"></td>
+                            <td date="28/3" startTime="12" endTime="13" class="success" onclick=checked(this)></td>
+                        </tr>
+                        <tr>
+                            <th scope="row">13</th>
+                            <td date="22/3" startTime="13" endTime="14"></td>
+                            <td date="23/3" startTime="13" endTime="14"></td>
+                            <td date="24/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                            <td date="25/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                            <td date="26/3" startTime="13" endTime="14"></td>
+                            <td date="27/3" startTime="13" endTime="14"></td>
+                            <td date="28/3" startTime="13" endTime="14" class="success" onclick=checked(this)></td>
+                        </tr>
 
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>-->
+                </div>
                 <div>&nbsp;</div>
 
                 <button type="button" class="btn btn-primary btn-lg" onclick=goBack()>clear</button>
