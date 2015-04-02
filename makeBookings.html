@@ -105,16 +105,39 @@
             alert("Right click");
         }
 
-        function selectSlot(target, date, time) {
+        function getSlotSelection(centre, date, time) {
+            var key = centre + "|" + date + "|" + time;
+            return selected.hasOwnProperty(key) ? (selected[key].length > 0 ? selected[key] : null) : null;
+        }
+
+        function setSlotSelection(centre, date, time, courts) {
+            var key = centre + "|" + date + "|" + time;
+            if (courts && courts.length > 0)
+                selected[key] = courts;
+            else delete selected[key];
+        }
+
+        function selectSlot(target) {
             target = $(target);
-            target.toggleClass("checked");
-            var key = date + " " + time;
-            if (target.hasClass("checked")) {
-                if (!selected.hasOwnProperty(key))
-                    selected[key] = {};
-            } else {
-                delete selected[key];
+            var date = target.attr("date");
+            var time = target.attr("time");
+            var centre = target.parents("table").attr("table");
+            if (getSlotSelection(centre, date, time)) { // previously selected
+                setSlotSelection(centre, date, time, null);
+                target.removeClass("checked");
+            } else { // not selected
+                setSlotSelection(centre, date, time, ["B00"]);
+                target.addClass("checked");
             }
+
+            // debug
+            var s = '';
+            for (var k in selected) {
+                var key = k.split('|');
+                for (var i = 0; i < selected[k].length; i++)
+                    s += key[0] + " " + key[1] + " " + key[2] + " " + selected[k][i] + "\n";
+            }
+            $("#debug").text(s);
         }
 
         function populateTimetables(data) {
@@ -171,7 +194,7 @@
                     var td = $("<td></td>").attr("date", dates[j]).attr("time", times[i]);
                     if (slotAvailableCallback(dates[j], times[i])) {
                         td.addClass("success");
-                        td.attr("onclick", "selectSlot(this, this.getAttribute('date'), this.getAttribute('time'))");
+                        td.attr("onclick", "selectSlot(this)");
                     }
                     if (slotCheckedCallback(dates[j], times[i])) {
                         td.addClass("checked");
@@ -181,6 +204,11 @@
                 tbody.append(tr);
             }
             t.append(tbody);
+        }
+
+        function activityChanged() {
+
+            populateTimetables(fetchRecord($("#type").val()));
         }
 
         $(function () {
@@ -265,8 +293,7 @@
                         <label for="type" class="col-xs-2 control-label text-left">Activity:</label>
 
                         <div class="col-xs-9">
-                            <select class="form-control" id="type"
-                                    onchange="populateTimetables(fetchRecord($(this).val()))">
+                            <select class="form-control" id="type" onchange="activityChanged()">
                                 <option>Badminton</option>
                                 <option>Fitness training</option>
                                 <option>Activities Room</option>
@@ -277,7 +304,8 @@
                 </div>
             </div>
             <div id="bookingTable" class="col-sm-12 col-xs-12 table-responsive">
-                <ul id="tableTabs" class="nav nav-tabs"><!--
+                <ul id="tableTabs" class="nav nav-tabs">
+                    <!--
                     <li role="presentation" table="#table0">
                         <a href="#"
                            onclick="changeTable(this.parentNode.getAttribute('table'))">shaw</a>
@@ -291,7 +319,8 @@
                            onclick="changeTable(this.parentNode.getAttribute('table'))">Student
                             Hall</a></li>-->
                 </ul>
-                <div id="tables"><!--
+                <div id="tables">
+                    <!--
                     <table class="table table-condensed table-bordered" id="table0">
                         <thead>
                         <tr>
@@ -500,6 +529,7 @@
                 <button type="button" class="btn btn-primary btn-lg" onclick=goBack() style="float:right;">Book</button>
             </div>
         </div>
+        <pre id="debug"></pre>
     </div>
 </body>
 </html>
