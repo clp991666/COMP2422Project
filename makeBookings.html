@@ -26,7 +26,7 @@
             }
             for (var h = 8; h <= 21; h++) {
                 d.set({ hour: h, minute: 30 });
-                times.push(d.toString("HH:mm"));
+                times.push(d.toString("HH:mm") + "-" + d.add({ hours: 1 }).toString("HH:mm"));
             }
             var prefix = activity.substr(0, 1).toUpperCase();
             return {
@@ -79,21 +79,9 @@
             $('#dateTime').val(date + " " + start + ":00-" + end + ":00");
 
         }
-        function checked(target) {
-            if ($(target).html() == '<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>') $(target).html('');
-            else $(target).html('<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>');
-            date = $(target).attr('date');
-            if ($(target).attr('startTime') < start) start = $(target).attr('startTime');
-            if ($(target).attr('endTime') > end) end = $(target).attr('endTime');
-            console.log($(target).attr('date'));
-            console.log($(target).attr('startTime'));
-            console.log($(target).attr('endTime'));
-            console.log(start);
-            console.log(end);
-        }
 
         function changeTable(table) {
-            var t = $("#tables [table='" + table + "']");
+            var t = $("#tables").find("[table='" + table + "']");
             $('table').not(t).removeClass('active');
             t.addClass('active');
             var x = $("li[table='" + table + "']");
@@ -117,18 +105,29 @@
             else delete selected[key];
         }
 
-        function selectSlot(target) {
+        function selectSlot(target, courts) {
             target = $(target);
             var date = target.attr("date");
             var time = target.attr("time");
             var centre = target.parents("table").attr("table");
-            if (getSlotSelection(centre, date, time)) { // previously selected
-                setSlotSelection(centre, date, time, null);
-                target.removeClass("checked");
-            } else { // not selected
-                setSlotSelection(centre, date, time, ["B00"]);
-                target.addClass("checked");
+            if (courts == null) {
+                if (getSlotSelection(centre, date, time)) { // previously selected
+                    setSlotSelection(centre, date, time, null);
+                } else { // not selected
+                    setSlotSelection(centre, date, time, [records.venues[centre][date][time][0]]);
+                }
+            } else {
+                setSlotSelection(centre, date, time, courts);
             }
+            // refresh button state
+            target.find('input[type=checkbox]').prop('checked', !!getSlotSelection(centre, date, time));
+            var selection = getSlotSelection(centre, date, time);
+            populateDropdown(
+                    target.find('ul'),
+                    records.venues[centre][date][time],
+                    function (court) {
+                        return selection ? selection.indexOf(court) >= 0 : false;
+                    });
 
             // debug
             var s = '';
@@ -138,6 +137,30 @@
                     s += key[0] + " " + key[1] + " " + key[2] + " " + selected[k][i] + "\n";
             }
             $("#debug").text(s);
+        }
+
+        function selectCourt(target, court) {
+            target = $(target);
+            var date = target.attr("date");
+            var time = target.attr("time");
+            var centre = target.parents("table").attr("table");
+
+            var courts = getSlotSelection(centre, date, time);
+            if (courts == null)
+                courts = [court];
+            else {
+                var i = courts.indexOf(court);
+                if (i < 0)
+                    courts.push(court);
+                else
+                    courts.splice(i, 1);
+            }
+            selectSlot(target, courts);
+        }
+
+        function dropdown(target) {
+            $(target).dropdown('toggle');
+            return false;
         }
 
         function populateTimetables(data) {
@@ -153,11 +176,13 @@
                 if (first == null) first = k; // get the first table
                 // nav tab
                 var tab = $("<li role=\"presentation\"></li>")
+                        .appendTo(tabs)
                         .attr("table", k)
                         .append($('<a href="javascript:void(0)" onclick="changeTable(this.parentNode.getAttribute(\'table\'))"></a>').text(k));
-                tabs.append(tab);
+
                 // table
-                var table = $('<table class="table table-condensed table-bordered"></table>').attr("table", k);
+                var table = $('<table class="table table-condensed table-bordered"></table>').attr("table", k)
+                        .appendTo(tables);
                 populateTimetable(table, data.dates, data.dates, data.times, data.times,
                         function (d, t) {
                             return data.venues[k].hasOwnProperty(d)
@@ -167,8 +192,14 @@
                         function (d, t) {
                             var key = d + " " + t;
                             return selected.hasOwnProperty(key) && selected[key].length > 0;
+                        },
+                        function (d, t) {
+                            return data.venues[k][d][t];
+                        },
+                        function (d, t, court) {
+                            var key = d + " " + t;
+                            return selected.hasOwnProperty(key) && selected[key].indexOf(court >= 0);
                         });
-                tables.append(table);
             }
 
             // preselect first table
@@ -177,7 +208,9 @@
 
         function populateTimetable(table, dates, dateLabels, times, timeLabels,
                                    slotAvailableCallback,
-                                   slotCheckedCallback) {
+                                   slotSelectedCallback,
+                                   slotDropdownListCallback,
+                                   slotDropdownListSelectedCallback) {
             var t = $(table);
             t.empty();
 
@@ -194,10 +227,17 @@
                     var td = $("<td></td>").attr("date", dates[j]).attr("time", times[i]);
                     if (slotAvailableCallback(dates[j], times[i])) {
                         td.addClass("success");
-                        td.attr("onclick", "selectSlot(this)");
-                    }
-                    if (slotCheckedCallback(dates[j], times[i])) {
-                        td.addClass("checked");
+                        td.append($('<input type="checkbox" onclick="selectSlot(this.parentNode)" />')
+                                .prop('checked', slotSelectedCallback(dates[j], times[i])));
+                        var dropdown = $('<span class="dropdown" onclick="dropdown($(this).find(\'ul\'))"></span>');
+                        td.append(dropdown);
+                        dropdown.append('<span class="glyphicon glyphicon-chevron-down" data-toggle="dropdown"></span>');
+                        var ul = $('<ul class="dropdown-menu" role="menu"></ul>');
+                        dropdown.append(ul);
+                        var list = slotDropdownListCallback(dates[j], times[i]);
+                        populateDropdown(ul, list, function (court) {
+                            return slotDropdownListSelectedCallback(dates[j], times[i], court);
+                        });
                     }
                     tr.append(td);
                 }
@@ -206,9 +246,22 @@
             t.append(tbody);
         }
 
-        function activityChanged() {
+        function populateDropdown(ul, list, itemCheckedCallback) {
+            ul = $(ul);
+            ul.empty();
+            for (var k = 0; k < list.length; k++) {
+                var li = $('<li role="presentation"></li>')
+                        .appendTo(ul)
+                        .append('<a role="menuitem" onclick="event.stopPropagation(); selectCourt($(this).parents(\'td\')[0], this.parentNode.getAttribute(\'court\')); return false;"></a>')
+                        .attr('court', list[k]);
+                li.find('a').text(list[k]);
+                if (itemCheckedCallback(list[k]))
+                    li.addClass('checked');
+            }
+        }
 
-            populateTimetables(fetchRecord($("#type").val()));
+        function activityChanged() {
+            populateTimetables(records = fetchRecord($("#type").val()));
         }
 
         $(function () {
@@ -233,23 +286,32 @@
 
         #bookingTable td {
             text-align : center;
+            position   : relative;
         }
 
-        #bookingTable td.success {
+        #bookingTable td input[type=checkbox] {
+            cursor : pointer;
+            width  : 100%;
+            height : 100%;
+            margin : 0;
+        }
+
+        #bookingTable td .dropdown {
+            position : absolute;
+            right    : 3px;
+        }
+
+        #bookingTable td .dropdown li {
             cursor : pointer;
         }
 
-        #bookingTable td.checked:after {
-            position                : relative;
-            top                     : 1px;
-            display                 : inline-block;
-            font-family             : 'Glyphicons Halflings';
-            font-style              : normal;
-            font-weight             : normal;
-            line-height             : 1;
-            -webkit-font-smoothing  : antialiased;
-            -moz-osx-font-smoothing : grayscale;
-            content                 : "\e013";
+        #bookingTable td .dropdown li.checked a {
+            background-color : #428bca;
+            color            : white;
+        }
+
+        #bookingTable td .dropdown li.checked a:hover {
+            background-color : #2a6496;
         }
 
     </style>
@@ -287,9 +349,9 @@
     </nav>
     <div class="container">
         <div class="row">
-        <div class="page-header">
-      <h1>Inquire/Make Bookings</h1>
-      </div>
+            <div class="page-header">
+                <h1>Inquire/Make Bookings</h1>
+            </div>
             <div id="inquiry" class="col-sm-12 col-xs-12">
                 <div class="form-horizontal">
                     <div class="form-group">
