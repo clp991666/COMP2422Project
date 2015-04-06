@@ -95,6 +95,16 @@
             alert("Right click");
         }
 
+        function getSelectionAsArray() {
+            var arr = [];
+            for (var k in selected) {
+                var key = k.split('|');
+                for (var i = 0; i < selected[k].length; i++)
+                    arr.push({ venue: key[0], date: key[1], time: key[2], court: selected[k][i] });
+            }
+            return arr;
+        }
+
         function getSlotSelection(centre, date, time) {
             var key = centre + "|" + date + "|" + time;
             return selected.hasOwnProperty(key) ? (selected[key].length > 0 ? selected[key] : null) : null;
@@ -133,12 +143,14 @@
 
             // debug
             var s = '';
-            for (var k in selected) {
-                var key = k.split('|');
-                for (var i = 0; i < selected[k].length; i++)
-                    s += key[0] + " " + key[1] + " " + key[2] + " " + selected[k][i] + "\n";
+            var selection = getSelectionAsArray();
+            for (var k = 0; k < selection.length; k++) {
+                var x = selection[k];
+                s += x.venue + " " + x.date + " " + x.time + " " + x.court + "\n";
             }
-            $("#debug").text(s);
+            if (s == '')
+                s = 'Please select a time slot.';
+            $("#display").text(s);
         }
 
         function selectCourt(target, court) {
@@ -372,15 +384,18 @@
             </div>
             <div id="bookingTable" class="col-sm-12 col-xs-12 table-responsive">
                 <ul id="tableTabs" class="nav nav-tabs"></ul>
-                <div id="tables" class="table-responsive"></div>
+                <div id="tables" class="table-responsive" style="overflow-y: auto"></div>
                 <div>&nbsp;</div>
 
-                <button type="button" class="btn btn-primary btn-lg" onclick=goBack()>clear</button>
-                <button type="button" class="btn btn-primary btn-lg" onclick=goBack() style="float:right;">Book</button>
+                <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
+                <button type="button" class="btn btn-primary btn-lg"
+                        onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; }"
+                        style="float:right;">Book
+                </button>
             </div>
         </div>
         <div>&nbsp;</div>
-        <pre id="debug"></pre>
+        <pre id="display">Please select a time slot.</pre>
     </div>
 </body>
 </html>
