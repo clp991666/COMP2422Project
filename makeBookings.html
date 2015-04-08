@@ -243,7 +243,7 @@
                                 .prop('checked', slotSelectedCallback(dates[j], times[i])));
                         var dropdown = $('<span class="dropdown" onclick="return dropdown($(this).find(\'ul\'))"></span>');
                         td.append(dropdown);
-                        dropdown.append('<span class="glyphicon glyphicon-option-vertical" data-toggle="dropdown"></span>');
+                        dropdown.append('<span class="glyphicon glyphicon glyphicon-chevron-down" data-toggle="dropdown"></span>');
                         var ul = $('<ul class="dropdown-menu dropdown-menu-right" role="menu"></ul>');
                         dropdown.append(ul);
                         var list = slotDropdownListCallback(dates[j], times[i]);
@@ -415,7 +415,7 @@
                 <div class="col-xs-12">
                     <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
                     <button type="button" class="btn btn-primary btn-lg"
-                            onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; }"
+                            onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; } else window.location.href = 'successBooking.html';"
                             style="float:right;">Book
                     </button>
                 </div>
