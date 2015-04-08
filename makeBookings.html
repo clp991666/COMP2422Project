@@ -10,7 +10,7 @@
 
     <!-- Latest compiled JavaScript -->
     <script src="js/bootstrap.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <!--<script src="js/bootstrap.min.js"></script>-->
 
     <script src="js/date.js"></script>
     <script>
@@ -20,12 +20,13 @@
             var today = Date.today();
             var dates = [];
             var times = [];
-            var d;
+
             for (var i = 0; i < 7; i++) {
-                d = today.addDays(i);
-                if (d.getDay() != 0 && d.getDay() != 6)
-                    dates.push(d.toString("yyyy-MM-dd"));
+                today.addDays(1);
+                if (today.getDay() != 0 && today.getDay() != 6)
+                    dates.push(today.toString("d/M (ddd)"));
             }
+            var d = Date.today();
             for (var h = 8; h <= 21; h++) {
                 d.set({ hour: h, minute: 30 });
                 times.push(d.toString("HH:mm") + "-" + d.add({ hours: 1 }).toString("HH:mm"));
@@ -89,10 +90,6 @@
             var x = $("li[table='" + table + "']");
             x.parent().find("li").removeClass("active");
             x.addClass("active");
-        }
-
-        function expand() {
-            alert("Right click");
         }
 
         function getSelectionAsArray() {
@@ -173,6 +170,7 @@
         }
 
         function dropdown(target) {
+            event.stopPropagation();
             $(target).dropdown('toggle');
             return false;
         }
@@ -228,7 +226,7 @@
             var t = $(table);
             t.empty();
 
-            var thead = $("<tr><th>Time\\Date</th></tr>");
+            var thead = $("<tr><th>Time \\ Date</th></tr>");
             for (var i = 0; i < dates.length; i++)
                 thead.append($("<th></th>").text(dateLabels[i]));
             t.append($("<thead></thead>").append(thead));
@@ -243,10 +241,10 @@
                         td.addClass("success");
                         td.append($('<input type="checkbox" onclick="selectSlot(this.parentNode)" />')
                                 .prop('checked', slotSelectedCallback(dates[j], times[i])));
-                        var dropdown = $('<span class="dropdown" onclick="dropdown($(this).find(\'ul\'))"></span>');
+                        var dropdown = $('<span class="dropdown" onclick="return dropdown($(this).find(\'ul\'))"></span>');
                         td.append(dropdown);
                         dropdown.append('<span class="glyphicon glyphicon-option-vertical" data-toggle="dropdown"></span>');
-                        var ul = $('<ul class="dropdown-menu" role="menu"></ul>');
+                        var ul = $('<ul class="dropdown-menu dropdown-menu-right" role="menu"></ul>');
                         dropdown.append(ul);
                         var list = slotDropdownListCallback(dates[j], times[i]);
                         populateDropdown(ul, list, function (court) {
@@ -285,9 +283,17 @@
     </script>
 
     <style type="text/css">
+        .container {
+            margin-top : 50px;
+        }
+
         .form-horizontal .control-label {
             /* text-align:right; */
             text-align : left;
+        }
+
+        #tableTabs a {
+            font-size : 1.2em;
         }
 
         table {
@@ -334,10 +340,24 @@
             background-color : #2a6496;
         }
 
+        #bookingTable .dropdown ul {
+            min-width : inherit;
+        }
+
+        @media (max-width : 480px) {
+            #bookingTable th {
+                font-size : .8em !important;
+            }
+
+            #bookingTable td .dropdown {
+                position : absolute;
+                right    : 0px;
+            }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-default">
+    <nav class="navbar navbar-default navbar-fixed-top navbar-inverse">
         <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
             <div class="navbar-header">
@@ -369,7 +389,7 @@
     </nav>
     <div class="container">
         <div class="row">
-            <div class="page-header">
+            <div class="page-header col-xs-12">
                 <h1>Inquire/Make Bookings</h1>
             </div>
             <div id="inquiry" class="col-sm-12 col-xs-12">
@@ -390,17 +410,19 @@
             </div>
             <div id="bookingTable" class="col-sm-12 col-xs-12">
                 <ul id="tableTabs" class="nav nav-tabs"></ul>
-                <div id="tables" class="" style="overflow-y: auto"></div>
+                <div id="tables"></div>
                 <div>&nbsp;</div>
-
-                <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
-                <button type="button" class="btn btn-primary btn-lg"
-                        onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; }"
-                        style="float:right;">Book
-                </button>
+                <div class="col-xs-12">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
+                    <button type="button" class="btn btn-primary btn-lg"
+                            onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; }"
+                            style="float:right;">Book
+                    </button>
+                </div>
             </div>
         </div>
         <div>&nbsp;</div>
+        <h3>Selected time slots:</h3>
         <pre id="display">Please select a time slot.</pre>
     </div>
 </body>
