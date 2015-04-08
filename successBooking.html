@@ -1,0 +1,59 @@
+<html>
+<head>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="css/bootstrap.css">
+
+  <!-- jQuery library -->
+  <script src="js/jquery-2.1.3.js"></script>
+  <script src="js/customFunction.js"></script>
+
+  <!-- Latest compiled JavaScript -->
+  <script src="js/bootstrap.min.js"></script>
+
+  <script src="js/date.js"></script>
+  <style type="text/css">
+    .table tbody>tr>td{
+      vertical-align: middle;
+    }   
+  </style>
+</head>
+<body onload='setTimeout(function (){window.location.href = "myBookings.html";}, 3000);'>
+  <nav class="navbar navbar-default navbar-inverse">
+    <div class="container-fluid">
+
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">PolyU System</a>
+      </div>
+
+
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          <li><a href="notice.html">Notice</a></li>
+          <li><a href="makeBookings.html">Inquire/Make Bookings</a></li>
+          <li><a href="#" class="active">My Bookings</a></li>
+        </ul>
+
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="#" class="text-right">Sign Out</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+  <div class="container">
+    <div class="row">
+      <div class="col-xs-12">
+      <div class="alert alert-success" role="alert">All timeslots successfully booked.</div>
+      Return to <a href="myBookings.html">My Bookings</a> in 3 seconds...
+      </div>
+    </div>
+  </div>
+</body>
+</html>
