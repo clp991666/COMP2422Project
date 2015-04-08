@@ -4,7 +4,7 @@
 
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="css/bootstrap.css">
-
+    <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">-->
     <!-- jQuery library -->
     <script src="js/jquery-2.1.3.js"></script>
 
@@ -245,7 +245,7 @@
                                 .prop('checked', slotSelectedCallback(dates[j], times[i])));
                         var dropdown = $('<span class="dropdown" onclick="dropdown($(this).find(\'ul\'))"></span>');
                         td.append(dropdown);
-                        dropdown.append('<span class="glyphicon glyphicon-chevron-down" data-toggle="dropdown"></span>');
+                        dropdown.append('<span class="glyphicon glyphicon-option-vertical" data-toggle="dropdown"></span>');
                         var ul = $('<ul class="dropdown-menu" role="menu"></ul>');
                         dropdown.append(ul);
                         var list = slotDropdownListCallback(dates[j], times[i]);
@@ -298,16 +298,22 @@
             display : table;
         }
 
+        #bookingTable {
+            padding : 0;
+        }
+
         #bookingTable td {
-            text-align : center;
-            position   : relative;
+            text-align     : center;
+            position       : relative;
+            vertical-align : middle;
         }
 
         #bookingTable td input[type=checkbox] {
-            cursor : pointer;
-            width  : 90%;
-            height : 90%;
-            margin : 0;
+            cursor     : pointer;
+            width      : 90%;
+            height     : 90%;
+            margin     : 0;
+            max-height : 1.2em;
         }
 
         #bookingTable td .dropdown {
@@ -382,9 +388,9 @@
                     </div>
                 </div>
             </div>
-            <div id="bookingTable" class="col-sm-12 col-xs-12 table-responsive">
+            <div id="bookingTable" class="col-sm-12 col-xs-12">
                 <ul id="tableTabs" class="nav nav-tabs"></ul>
-                <div id="tables" class="table-responsive" style="overflow-y: auto"></div>
+                <div id="tables" class="" style="overflow-y: auto"></div>
                 <div>&nbsp;</div>
 
                 <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
