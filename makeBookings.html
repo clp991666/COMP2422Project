@@ -40,13 +40,18 @@
             for (var k in selected) {
                 var key = k.split('|');
                 for (var i = 0; i < selected[k].length; i++)
-                    arr.push({ venue: key[0], date: key[1], time: key[2], court: selected[k][i] });
+                    arr.push({
+                        venue: key[0],
+                        date: key[1],
+                        time: key[2],
+                        court: selected[k][i],
+                        d: Date.parseExact(key[1] + key[2], 'yyyy-MM-ddHH:mm')
+                    });
             }
             arr.sort(function (a, b) {
-                return a.date != b.date ? (a.date < b.date ? -1 : 1) :
-                       (a.time != b.time ? (a.time < b.time ? -1 : 1) :
-                        (a.venue != b.venue ? (a.venue < b.venue ? -1 : 1) :
-                         (a.court != b.court ? (a.court < b.court ? -1 : 1) : 0)));
+                return a.d.getTime() != +b.d.getTime() ? (a.d < b.d ? -1 : 1) :
+                       (a.venue != b.venue ? (a.venue < b.venue ? -1 : 1) :
+                        (a.court != b.court ? (a.court < b.court ? -1 : 1) : 0));
             });
             return arr;
         }
@@ -102,7 +107,12 @@
             var selection = getSelectionAsArray();
             for (var k = 0; k < selection.length; k++) {
                 var x = selection[k];
-                s += x.date + " " + x.time + " " + x.venue + " " + x.court + "\n";
+                s += x.d.toString('yyyy/MM/dd (ddd) HH:mm')
+                + x.d.clone().add({ hours: 1 }).toString('-HH:mm ')
+                + x.venue
+                + " "
+                + x.court
+                + "\n";
             }
             if (s == '')
                 s = 'Please select a time slot.';
@@ -155,7 +165,17 @@
                 // table
                 var table = $('<table class="table table-condensed table-bordered"></table>').attr("table", k)
                         .appendTo(tables);
-                populateTimetable(table, data.dates, data.dates, data.times, data.times,
+                var dateLabels = [];
+                for (var q = 0; q < data.dates.length; q++) {
+                    var d = Date.parseExact(data.dates[q], 'yyyy-MM-dd');
+                    dateLabels.push(d.toString('d/M (ddd)'));
+                }
+                var timeLabels = [];
+                for (var q = 0; q < data.times.length; q++) {
+                    var d = Date.parseExact(data.times[q], 'HH:mm');
+                    timeLabels.push(data.times[q] + '-' + d.add({ hours: 1 }).toString('HH:mm'));
+                }
+                populateTimetable(table, data.dates, dateLabels, data.times, timeLabels,
                         function (d, t) {
                             return data.venues[k].hasOwnProperty(d)
                                     && data.venues[k][d].hasOwnProperty(t)
