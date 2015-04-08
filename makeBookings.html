@@ -4,6 +4,7 @@
 
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/global.css">
     <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">-->
     <!-- jQuery library -->
     <script src="js/jquery-2.1.3.js"></script>
@@ -13,75 +14,11 @@
     <!--<script src="js/bootstrap.min.js"></script>-->
 
     <script src="js/date.js"></script>
-    <script>
-        function fetchRecord(activity) {
-            // fake records generator
+    <script src="sampledata.js"></script>
 
-            var today = Date.today();
-            var dates = [];
-            var times = [];
-
-            for (var i = 0; i < 7; i++) {
-                today.addDays(1);
-                if (today.getDay() != 0 && today.getDay() != 6)
-                    dates.push(today.toString("d/M (ddd)"));
-            }
-            var d = Date.today();
-            for (var h = 8; h <= 21; h++) {
-                d.set({ hour: h, minute: 30 });
-                times.push(d.toString("HH:mm") + "-" + d.add({ hours: 1 }).toString("HH:mm"));
-            }
-            var prefix = activity.substr(0, 1).toUpperCase();
-            return {
-                dates: dates,
-                times: times,
-                venues: {
-                    "Shaw": randomSlots(prefix, dates, times),
-                    "Kwong On": randomSlots(prefix, dates, times),
-                    "Hall": randomSlots(prefix, dates, times)
-                }
-            };
-        }
-
-        function randomSlots(prefix, dates, times) {
-            // fake records generator
-
-            var result = {};
-            for (var d = 0; d < dates.length; d++) {
-                var date = dates[d];
-                var day = result[date] = {};
-
-                for (var t = 0; t < times.length; t++) {
-                    var time = times[t];
-                    var slots = day[time] = [];
-                    if (Math.random() > .5)
-                        for (var court = 1; court <= 10; court++) {
-                            if (Math.random() > .4) continue;
-                            slots.push(prefix + ("00" + court.toString()).slice(-2));
-                        }
-                }
-
-            }
-            return result;
-        }
-    </script>
     <script type="text/javascript">
         var records = {};
         var selected = {};
-
-        $("document").ready(function () {
-            changeTable("#table0");
-        });
-        function select() {
-            $('#addMeeting').hide();
-            $('#selectDateTime').show();
-        }
-        function goBack() {
-            $('#addMeeting').show();
-            $('#selectDateTime').hide();
-            $('#dateTime').val(date + " " + start + ":00-" + end + ":00");
-
-        }
 
         function changeTable(table) {
             var t = $("#tables").find("[table='" + table + "']");
@@ -92,6 +29,12 @@
             x.addClass("active");
         }
 
+        function clearSelection() {
+            selected = {};
+            populateTimetables(records, $("#tableTabs li.active").attr('table'));
+            displaySelected();
+        }
+
         function getSelectionAsArray() {
             var arr = [];
             for (var k in selected) {
@@ -99,6 +42,12 @@
                 for (var i = 0; i < selected[k].length; i++)
                     arr.push({ venue: key[0], date: key[1], time: key[2], court: selected[k][i] });
             }
+            arr.sort(function (a, b) {
+                return a.date != b.date ? (a.date < b.date ? -1 : 1) :
+                       (a.time != b.time ? (a.time < b.time ? -1 : 1) :
+                        (a.venue != b.venue ? (a.venue < b.venue ? -1 : 1) :
+                         (a.court != b.court ? (a.court < b.court ? -1 : 1) : 0)));
+            });
             return arr;
         }
 
@@ -120,8 +69,14 @@
             var time = target.attr("time");
             var centre = target.parents("table").attr("table");
             if (courts == null) {
-                if (getSlotSelection(centre, date, time)) { // previously selected
-                    setSlotSelection(centre, date, time, null);
+                var previous = getSlotSelection(centre, date, time);
+                if (previous) { // previously selected
+                    if (previous.length == 1 && previous[0] == records.venues[centre][date][time][0])
+                    // if default selection then toggle
+                        setSlotSelection(centre, date, time, null);
+                    else
+                    // not default means the user has chosen custom court from dropdown, then open the dropdown instead
+                        return dropdown(target.find('ul.dropdown-menu'));
                 } else { // not selected
                     setSlotSelection(centre, date, time, [records.venues[centre][date][time][0]]);
                 }
@@ -138,12 +93,16 @@
                         return selection ? selection.indexOf(court) >= 0 : false;
                     });
 
-            // debug
+            displaySelected();
+        }
+
+        function displaySelected() {
+            // display selected
             var s = '';
             var selection = getSelectionAsArray();
             for (var k = 0; k < selection.length; k++) {
                 var x = selection[k];
-                s += x.venue + " " + x.date + " " + x.time + " " + x.court + "\n";
+                s += x.date + " " + x.time + " " + x.venue + " " + x.court + "\n";
             }
             if (s == '')
                 s = 'Please select a time slot.';
@@ -171,11 +130,12 @@
 
         function dropdown(target) {
             event.stopPropagation();
+            event.preventDefault();
             $(target).dropdown('toggle');
             return false;
         }
 
-        function populateTimetables(data) {
+        function populateTimetables(data, selecttable) {
             var tabs = $("#tableTabs");
             var tables = $("#tables");
             tabs.empty();
@@ -215,7 +175,7 @@
             }
 
             // preselect first table
-            changeTable(first);
+            changeTable(selecttable ? selecttable : first);
         }
 
         function populateTimetable(table, dates, dateLabels, times, timeLabels,
@@ -236,14 +196,15 @@
                 var tr = $("<tr></tr>");
                 tr.append($("<th scope=\"row\"></th>").text(timeLabels[i]));
                 for (var j = 0; j < dates.length; j++) {
-                    var td = $("<td></td>").attr("date", dates[j]).attr("time", times[i]);
+                    var td = $('<td></td>').attr("date", dates[j]).attr("time", times[i]);
                     if (slotAvailableCallback(dates[j], times[i])) {
                         td.addClass("success");
-                        td.append($('<input type="checkbox" onclick="selectSlot(this.parentNode)" />')
-                                .prop('checked', slotSelectedCallback(dates[j], times[i])));
+                        td.attr('onclick', 'selectSlot(this)');
+                        td.append($('<input type="checkbox" onclick=""/>').prop('checked', slotSelectedCallback(dates[j], times[i])));
                         var dropdown = $('<span class="dropdown" onclick="return dropdown($(this).find(\'ul\'))"></span>');
                         td.append(dropdown);
-                        dropdown.append('<span class="glyphicon glyphicon glyphicon-chevron-down" data-toggle="dropdown"></span>');
+
+                        dropdown.append('<span class="glyphicon glyphicon-triangle-bottom" data-toggle="dropdown"></span>');
                         var ul = $('<ul class="dropdown-menu dropdown-menu-right" role="menu"></ul>');
                         dropdown.append(ul);
                         var list = slotDropdownListCallback(dates[j], times[i]);
@@ -273,20 +234,16 @@
         }
 
         function activityChanged() {
+            if (getSelectionAsArray().length > 0)
+                if (!confirm('Changing the filter will clear the selection. Continue?'))
+                    return false;
+            clearSelection();
             populateTimetables(records = fetchRecord($("#type").val()));
+            return true;
         }
-
-        $(function () {
-            $("#type").trigger("change");
-        });
-
     </script>
 
     <style type="text/css">
-        .container {
-            margin-top : 50px;
-        }
-
         .form-horizontal .control-label {
             /* text-align:right; */
             text-align : left;
@@ -314,17 +271,24 @@
             vertical-align : middle;
         }
 
+        #bookingTable td.success {
+            cursor : pointer;
+        }
+
+        #bookingTable td.success:hover {
+            background-color : #d5e6cf;
+        }
+
         #bookingTable td input[type=checkbox] {
-            cursor     : pointer;
-            width      : 90%;
-            height     : 90%;
-            margin     : 0;
-            max-height : 1.2em;
+            margin : 0;
         }
 
         #bookingTable td .dropdown {
-            position : absolute;
-            right    : 3px;
+            float : right;
+        }
+
+        #bookingTable td .dropdown > span {
+            font-size : .6em;
         }
 
         #bookingTable td .dropdown li {
@@ -350,8 +314,7 @@
             }
 
             #bookingTable td .dropdown {
-                position : absolute;
-                right    : 0px;
+                right : 0px;
             }
         }
     </style>
@@ -368,14 +331,14 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">PolyU System</a>
+                <a class="navbar-brand" href="./">PolyU System</a>
             </div>
 
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
                     <li><a href="notice.html">Notice</a></li>
-                    <li><a href="#" class="active">Inquire/Make Bookings</a></li>
+                    <li><a class="active">Inquire/Make Bookings</a></li>
                     <li><a href="myBookings.html">My Bookings</a></li>
                 </ul>
 
@@ -398,7 +361,7 @@
                         <label for="type" class="col-xs-2 control-label text-left">Activity:</label>
 
                         <div class="col-xs-9">
-                            <select class="form-control" id="type" onchange="activityChanged()">
+                            <select class="form-control" id="type">
                                 <option>Badminton</option>
                                 <option>Fitness training</option>
                                 <option>Activities Room</option>
@@ -413,7 +376,7 @@
                 <div id="tables"></div>
                 <div>&nbsp;</div>
                 <div class="col-xs-12">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="goBack()">clear</button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="clearSelection()">clear</button>
                     <button type="button" class="btn btn-primary btn-lg"
                             onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; } else window.location.href = 'successBooking.html';"
                             style="float:right;">Book
@@ -425,5 +388,20 @@
         <h3>Selected time slots:</h3>
         <pre id="display">Please select a time slot.</pre>
     </div>
+    <script type="text/javascript">
+
+        $("#type").change(function () {
+            if (!activityChanged()) {
+                event.preventDefault();
+                event.stopPropagation();
+                $("#type").data().attr("selected", true);
+            }
+        }).click(function () {
+            $("#type").data($("#type option:selected"));
+        });
+
+        $("#type").trigger("change");
+
+    </script>
 </body>
 </html>
