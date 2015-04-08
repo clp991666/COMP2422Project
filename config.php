@@ -9,6 +9,7 @@ class config
 {
     static $db_host   = 'localhost';
     static $db_user   = 'me';
-    static $db_pw     = 'lkho';
+    static $db_pw     = 'me';
     static $db_schema = 'comp2422';
+    static $db_prefix = '';
 }
