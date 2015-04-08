@@ -5,11 +5,17 @@
  * Date: 8/4/2015
  */
 
-$action = $_GET['action'] ? strtolower($action) : null;
+$action = isset($_GET['action']) ? strtolower($_GET['action']) : null;
 switch ($action) {
     case 'list':
         require_once 'db.php';
-        $activity = $_GET['activity'];
+        $activity = @$_GET['activity'];
+        if (!$activity) {
+            header('http/1.1 400 Bad Request');
+            echo 'Missing field';
+            break;
+        }
+
         $prefix = strtoupper(substr($activity, 0, 1));
 
         $result = db::query('');
@@ -22,11 +28,11 @@ switch ($action) {
         for ($i = 1; $i <= 7; $i++) {
             $d = $today + $i * 24 * 60 * 60;
             if (date('N', $d) > 5) continue;
-            $dates[] = $str_d = date('Y-m-d', $d);
+            $dates[] = date('Y-m-d', $d);
         }
         for ($h = 8; $h <= 21; $h++) {
-            $dt = $today + $h * 60 * 60;
-            $times[] = $str_t = date('H:i', $dt);
+            $dt = $today + $h * 60 * 60 + 30 * 60;
+            $times[] = date('H:i', $dt);
         }
 
         foreach ($venues as $venue => &$courts) {
@@ -50,8 +56,10 @@ switch ($action) {
             'times'  => $times,
             'venues' => $venues
         );
+        header('content-type: application/json');
         echo json_encode($out);
         break;
     default:
         header('HTTP/1.1 400 Bad Request');
+        echo 'Unknown action';
 }
