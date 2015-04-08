@@ -1,6 +1,7 @@
 		var date;
 		var start = 22;
 		var end = 9;
+		var currentBooking;
 
 		$("document").ready(function () {
 			changeTable("#table0");
@@ -101,4 +102,14 @@
 		function dropdown(target){
 			event.stopPropagation();
 			$(target).dropdown('toggle');
+		}
+
+		function registerBooking(target){
+			currentBooking=target;
+			console.log(currentBooking);
+		}
+
+		function dismissBooking(content){
+			$(currentBooking).parents('tr').remove();
+			$(".page-header").prepend('<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>The booking is successfully '+content+'.</div>')
 		}
