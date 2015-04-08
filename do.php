@@ -18,7 +18,6 @@ switch ($action) {
 
         $prefix = strtoupper(substr($activity, 0, 1));
 
-        $result = db::query('');
 
         $today = strtotime('today');
         $dates = array();
@@ -35,6 +34,7 @@ switch ($action) {
             $times[] = date('H:i', $dt);
         }
 
+//        $result = db::query('SELECT * FROM `' . config::$db_prefix . 'bookings` WHERE time > now()');
         foreach ($venues as $venue => &$courts) {
 
             foreach ($dates as $date) {
