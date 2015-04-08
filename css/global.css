@@ -1,0 +1,7 @@
+.navbar-nav > li > a.active {
+	color : white;
+}
+
+.container {
+	margin-top : 50px;
+}
