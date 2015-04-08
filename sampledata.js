@@ -31,12 +31,12 @@ function fetchRecord(activity) {
     for (var i = 0; i < 7; i++) {
         today.addDays(1);
         if (today.getDay() != 0 && today.getDay() != 6)
-            dates.push(today.toString("yyyy-MM-dd"));
+            dates.push(today.toString("dd/MM (ddd)"));
     }
     var d = Date.today();
     for (var h = 8; h <= 21; h++) {
         d.set({ hour: h, minute: 30 });
-        times.push(d.toString("HH:mm"));
+        times.push(d.toString("HH:mm") + "-" + d.add({ hours: 1 }).toString("HH:mm"));
     }
     var prefix = activity.substr(0, 1).toUpperCase();
     return {
