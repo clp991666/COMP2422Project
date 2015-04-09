@@ -1,0 +1,78 @@
+.container {
+	margin-bottom : 50px;
+}
+
+.form-horizontal .control-label {
+	/* text-align:right; */
+	text-align : left;
+}
+
+#tableTabs a {
+	font-size : 1.2em;
+}
+
+#tables table {
+	display : none;
+	margin  : 0;
+}
+
+#tables table.active {
+	display : table;
+}
+
+#bookingTable td {
+	text-align     : center;
+	position       : relative;
+	vertical-align : middle;
+}
+
+#bookingTable td.success {
+	cursor : pointer;
+}
+
+#bookingTable td.success:hover {
+	background-color : #d5e6cf;
+}
+
+#bookingTable td input[type=checkbox] {
+	margin : 0;
+}
+
+#bookingTable td .dropdown {
+	float : right;
+}
+
+#bookingTable td .dropdown > span {
+	font-size : .6em;
+}
+
+#bookingTable td .dropdown li {
+	cursor : pointer;
+}
+
+#bookingTable td .dropdown li.checked a {
+	background-color : #428bca;
+	color            : white;
+}
+
+#bookingTable td .dropdown li.checked a:hover {
+	background-color : #2a6496;
+}
+
+#bookingTable .dropdown ul {
+	min-width : inherit;
+}
+
+@media (max-width : 480px) {
+	.col-full {
+		padding : 0;
+	}
+
+	#bookingTable th {
+		font-size : .8em !important;
+	}
+
+	#bookingTable td .dropdown {
+		right : 0px;
+	}
+}
