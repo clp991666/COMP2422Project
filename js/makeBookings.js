@@ -129,9 +129,9 @@ function selectCourt(target, court) {
 
 function dropdown(target) {
     event.stopPropagation();
-    event.preventDefault();
+    if (event.target.className == 'dropdown-backdrop')
+        return;
     $(target).dropdown('toggle');
-    return false;
 }
 
 function populateTimetables(data, selecttable) {
@@ -209,8 +209,8 @@ function populateTimetable(table, dates, dateLabels, times, timeLabels,
             if (slotAvailableCallback(dates[j], times[i])) {
                 td.addClass("success");
                 td.attr('onclick', 'selectSlot(this)');
-                td.append($('<input type="checkbox" onclick=""/>').prop('checked', slotSelectedCallback(dates[j], times[i])));
-                var dropdown = $('<span class="dropdown" onclick="return dropdown($(this).find(\'ul\'))"></span>');
+                td.append($('<input type="checkbox" />').prop('checked', slotSelectedCallback(dates[j], times[i])));
+                var dropdown = $('<span class="dropdown" onclick="dropdown($(this).find(\'ul\'))"></span>');
                 td.append(dropdown);
 
                 dropdown.append('<span class="glyphicon glyphicon-triangle-bottom" data-toggle="dropdown"></span>');
