@@ -43,9 +43,9 @@
                     <li><a class="active">Inquire/Make Bookings</a></li>
                     <li><a href="myBookings.html">My Bookings</a></li>
                 </ul>
-
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="#" class="text-right">Sign Out</a></li>
+                    <li><a href="#" class="text-right">Sign Out <span id="info_user"></span></a>
+                    </li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -53,16 +53,20 @@
         <!-- /.container-fluid -->
     </nav>
     <div class="container">
+
         <div class="row">
-            <div class="page-header col-xs-12">
+            <div class="page-header">
                 <h1>Inquire/Make Bookings</h1>
             </div>
-            <div id="inquiry" class="col-sm-12 col-xs-12">
+        </div>
+
+        <div class="row">
+            <div id="inquiry" class="col-sm-12">
                 <div class="form-horizontal">
                     <div class="form-group">
-                        <label for="type" class="col-xs-2 control-label text-left">Activity:</label>
+                        <label for="type" class="col-sm-2 control-label">Activity:</label>
 
-                        <div class="col-xs-9">
+                        <div class="col-sm-10">
                             <select class="form-control" id="type">
                                 <option>Badminton</option>
                                 <option>Fitness training</option>
@@ -73,23 +77,46 @@
                     </div>
                 </div>
             </div>
-            <div id="bookingTable" class="col-sm-12 col-xs-12">
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
                 <ul id="tableTabs" class="nav nav-tabs"></ul>
+            </div>
+        </div>
+
+        <div class="row">
+            <div id="bookingTable" class="col-full col-md-8">
+
+                <div class="col-xs-12 alert alert-info" style="margin: 0; border-radius: 0">
+                    Today is <strong id="info_today"></strong>,
+                    <span style="display: inline-block">Deposit Balance: <strong id="info_balance">$ 0</strong></span>
+                </div>
                 <div id="tables"></div>
-                <div>&nbsp;</div>
-                <div class="col-xs-12">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="clearSelection()">clear</button>
-                    <button type="button" class="btn btn-primary btn-lg"
-                            onclick="if(getSelectionAsArray().length==0) { alert('Please select at least one time slot'); return false; } else window.location.href = 'successBooking.html';"
-                            style="float:right;">Book
-                    </button>
+            </div>
+            <div class="col-md-4 col-full">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h4>Selected time slots:</h4>
+                    </div>
+                    <ul class="list-group" id="display"></ul>
+                    <div class="panel-footer clearfix" style="padding: 0; margin: -1px">
+                        <button type="button" class="col-xs-6 btn btn-primary btn-lg" onclick="clearSelection()"
+                                style="border-radius: 0; border-bottom-left-radius: 3px">
+                            Clear
+                        </button>
+                        <button type="button" class="col-xs-6 btn btn-primary btn-lg btn-default"
+                                onclick="return book()"
+                                style="border-radius: 0; border-bottom-right-radius: 3px">
+                            Book
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div>&nbsp;</div>
-        <h3>Selected time slots:</h3>
-        <pre id="display">Please select a time slot.</pre>
+
     </div>
+
     <script type="text/javascript">
 
         $("#type").change(function () {
@@ -101,6 +128,15 @@
         }).click(function () {
             $("#type").data($("#type option:selected"));
         });
+
+        $.ajax({
+            url: 'do.php?action=info',
+            success: function (data) {
+                $('#info_user').text('(' + data.info_user + ')');
+                $('#info_today').text(data.info_today);
+                $('#info_balance').text('$ ' + data.info_balance);
+            }
+        })
 
         $("#type").trigger("change");
 
