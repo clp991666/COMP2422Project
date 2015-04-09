@@ -14,7 +14,7 @@
     <!--<script src="js/bootstrap.min.js"></script>-->
 
     <script src="js/date.js"></script>
-    <script src="sampledata.js"></script>
+    <!--<script src="sampledata.js"></script>-->
 
     <script type="text/javascript">
         var records = {};
@@ -257,8 +257,24 @@
             if (getSelectionAsArray().length > 0)
                 if (!confirm('Changing the filter will clear the selection. Continue?'))
                     return false;
-            clearSelection();
-            populateTimetables(records = fetchRecord($("#type").val()));
+
+            selected = {};
+            displaySelected();
+            $("#tableTabs").empty();
+            $("#tables").empty();
+
+
+            $.ajax({
+                url: 'do.php?action=list',
+                data: { activity: $("#type").val() },
+                success: function (data) {
+                    populateTimetables(records = data);
+                },
+                error: function (xhr, status, error) {
+                    alert("Cannot get available time slots:\n" + xhr.responseText != '' ? xhr.responseText : error);
+                }
+            });
+
             return true;
         }
     </script>
