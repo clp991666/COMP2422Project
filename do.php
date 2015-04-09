@@ -34,7 +34,13 @@ switch ($action) {
             $times[] = date('H:i', $dt);
         }
 
-//        $result = db::query('SELECT * FROM `' . config::$db_prefix . 'bookings` WHERE time > now()');
+        $result = db::query('SELECT unix_timestamp(time), venue, court FROM `' . config::$db_prefix . 'bookings`
+                             WHERE activity = ' . db::escape($activity) . '
+                               AND time > now()');
+        $booked = array();
+        while ($row = $result->fetch_row())
+            $booked[serialize($row)] = true;
+
         foreach ($venues as $venue => &$courts) {
 
             foreach ($dates as $date) {
@@ -42,7 +48,8 @@ switch ($action) {
                 foreach ($times as $time) {
 
                     for ($court = 1; $court <= 10; $court++) {
-                        $courts[$date][$time][] = $prefix . sprintf('%02d', $court);
+                        if (!isset($booked[serialize(array())]))
+                            $courts[$date][$time][] = $prefix . sprintf('%02d', $court);
                     }
 
                 }
