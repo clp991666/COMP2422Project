@@ -7,14 +7,6 @@
 
 $action = isset($_GET['action']) ? strtolower($_GET['action']) : null;
 switch ($action) {
-    case 'info':
-        header('content-type: application/json');
-        echo json_encode(array(
-                             'info_user'    => rand(10000000, 19999999) . 'd CHAN Siu Ming',
-                             'info_balance' => rand(0, 100),
-                             'info_today'   => date('j F, Y (l)')
-                         ));
-        break;
     case 'list':
         require_once 'db.php';
         $activity = @$_GET['activity'];
@@ -42,31 +34,37 @@ switch ($action) {
             $times[] = date('H:i', $dt);
         }
 
-        $result = db::query("SELECT time, venue, court FROM [bookings]
-                             WHERE activity = '" . db::escape($activity) . "'
-                               AND time > now()");
+        $result = db::query('SELECT unix_timestamp(time), venue, court FROM `' . config::$db_prefix . 'bookings`
+                             WHERE activity = ' . db::escape($activity) . '
+                               AND time > now()');
         $booked = array();
         while ($row = $result->fetch_row())
-            $booked["{$row[0]}|{$row[1]}|{$row[2]}"] = true;
+            $booked[serialize($row)] = true;
 
         foreach ($venues as $venue => &$courts) {
+
             foreach ($dates as $date) {
+
                 foreach ($times as $time) {
+
                     for ($court = 1; $court <= 10; $court++) {
-                        $c = $prefix . sprintf('%02d', $court);
-                        if (!isset($booked["$date $time:00|$venue|$c"]))
-                            $courts[$date][$time][] = $c;
+                        if (!isset($booked[serialize(array())]))
+                            $courts[$date][$time][] = $prefix . sprintf('%02d', $court);
                     }
+
                 }
+
             }
+
         }
 
+        $out = array(
+            'dates'  => $dates,
+            'times'  => $times,
+            'venues' => $venues
+        );
         header('content-type: application/json');
-        echo json_encode(array(
-                             'dates'  => $dates,
-                             'times'  => $times,
-                             'venues' => $venues
-                         ));
+        echo json_encode($out);
         break;
     default:
         header('HTTP/1.1 400 Bad Request');
