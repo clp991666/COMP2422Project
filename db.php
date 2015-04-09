@@ -18,11 +18,15 @@ class db
     }
 
     public static function prepare($query) {
-        return self::$mysqli->prepare($query);
+        return self::$mysqli->prepare(self::prefixTables($query));
+    }
+
+    public static function prefixTables($query) {
+        return preg_replace('/(?<!\\.)\\[(.+?)\\]/', '`' . config::$db_prefix . '$1`', $query);
     }
 
     public static function query($query, $resultmode = MYSQLI_STORE_RESULT) {
-        return self::$mysqli->query($query, $resultmode);
+        return self::$mysqli->query(self::prefixTables($query), $resultmode);
     }
 
     public static function escape($escapestr) {
