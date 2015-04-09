@@ -67,9 +67,11 @@ function selectSlot(target, courts) {
             if (previous.length == 1 && previous[0] == records.venues[centre][date][time][0])
             // if default selection then toggle
                 setSlotSelection(centre, date, time, null);
-            else
-            // not default means the user has chosen custom court from dropdown, then open the dropdown instead
+            else {
+                // not default means the user has chosen custom court from dropdown, then open the dropdown instead
+                event.preventDefault();
                 return dropdown(target.find('ul.dropdown-menu'));
+            }
         } else { // not selected
             setSlotSelection(centre, date, time, [records.venues[centre][date][time][0]]);
         }
@@ -130,8 +132,9 @@ function selectCourt(target, court) {
 function dropdown(target) {
     event.stopPropagation();
     if (event.target.className == 'dropdown-backdrop')
-        return;
+        return false;
     $(target).dropdown('toggle');
+    return false;
 }
 
 function populateTimetables(data, selecttable) {
