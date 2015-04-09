@@ -7,9 +7,9 @@
  */
 class config
 {
-    static $db_host   = 'localhost';
-    static $db_user   = 'me';
-    static $db_pw     = 'me';
-    static $db_schema = 'comp2422';
-    static $db_prefix = '';
+    static $db_host   = 'mysql.comp.polyu.edu.hk';
+    static $db_user   = '13068649d';
+    static $db_pw     = 'lkho';
+    static $db_schema = '13068649d';
+    static $db_prefix = 'comp2422_';
 }
