@@ -19,8 +19,8 @@ switch ($action) {
             header('HTTP/1.1 303 See Other');
             header('Location: ./');
         } else {
-            header('HTTP/1.1 403 Unauthorized');
-            echo 'Wrong user id or password';
+            header('HTTP/1.1 303 See Other');
+            header('Location: login.html?err=' . urlencode('Wrong user id or password.'));
         }
         break;
 

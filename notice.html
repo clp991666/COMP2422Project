@@ -40,10 +40,8 @@
 
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav">
+                <ul class="nav navbar-nav" id="navbar-links">
                     <li><a class="active">Notice</a></li>
-                    <li><a href="makeBookings.html">Inquire/Make Bookings</a></li>
-                    <li><a href="myBookings.html">My Bookings</a></li>
                 </ul>
 
                 <ul class="nav navbar-nav navbar-right">
@@ -130,6 +128,9 @@
             url: 'do.php?action=info',
             success: function (data) {
                 $('#info_user').text('Sign Out (' + data.info_user + ')').attr('href', 'do.php?action=logout');
+                $('#navbar-links')
+                        .append('<li><a href="makeBookings.html">Inquire/Make Bookings</a></li>')
+                        .append('<li><a href="myBookings.html">My Bookings</a></li>');
             }, error: function () {
                 $('#info_user').text('Sign In').attr('href', 'login.html');
             }
