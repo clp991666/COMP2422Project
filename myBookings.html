@@ -174,7 +174,7 @@
             success: function (data) {
                 $('#info_user').text('Sign Out (' + data.info_user + ')').attr('href', 'do.php?action=logout');
             }, error: function () {
-                alert('Please login first!');
+                alert('Session expired. Please login again.');
                 window.location = 'login.html';
             }
         });

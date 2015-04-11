@@ -137,7 +137,7 @@
                 $('#info_balance').text('$ ' + data.info_balance);
                 $("#type").trigger("change");
             }, error: function () {
-                alert('Please login first!');
+                alert('Session expired. Please login again.');
                 window.location = 'login.html';
             }
         });
