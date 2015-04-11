@@ -5,18 +5,57 @@
  * Date: 8/4/2015
  */
 
+require_once 'db.php';
 $action = isset($_GET['action']) ? strtolower($_GET['action']) : null;
+
 switch ($action) {
-    case 'info':
-        header('content-type: application/json');
-        echo json_encode(array(
-                             'info_user'    => rand(10000000, 19999999) . 'd CHAN Siu Ming',
-                             'info_balance' => rand(0, 100),
-                             'info_today'   => date('j F, Y (l)')
-                         ));
+    case 'login':
+
+        $result = db::query("SELECT id, pw FROM [users] WHERE id = '" . db::escape($_POST['uid']) . "'");
+        $row = $result->fetch_row();
+        if ($_POST['pw'] === $row[1]) {
+            session_start();
+            $_SESSION = array('uid' => $row[0]);
+            header('HTTP/1.1 303 See Other');
+            header('Location: ./');
+        } else {
+            header('HTTP/1.1 403 Unauthorized');
+            echo 'Wrong user id or password';
+        }
         break;
+
+    case 'logout':
+
+        session_start();
+        $_SESSION = array();
+        session_destroy();
+        header('HTTP/1.1 302 Found');
+        header('Location: ./');
+        break;
+
+    case 'info':
+
+        session_start();
+        if (isset($_SESSION['uid'])) {
+            $result = db::query("SELECT id, name, deposit FROM [users] WHERE id = '" . db::escape($_SESSION['uid']) . "'");
+            $row = $result->fetch_assoc();
+            if ($row) {
+                header('content-type: application/json');
+                echo json_encode(array(
+                                     'info_user'    => $row['id'] . ' ' . $row['name'],
+                                     'info_balance' => floatval($row['deposit']),
+                                     'info_today'   => date('j F, Y (l)')
+                                 ));
+                break;
+            }
+        }
+        header('HTTP/1.1 403 Unauthorized');
+        echo 'Session expired. Please log in again.';
+
+        break;
+
     case 'list':
-        require_once 'db.php';
+
         $activity = @$_GET['activity'];
         if (!$activity) {
             header('http/1.1 400 Bad Request');
@@ -68,6 +107,7 @@ switch ($action) {
                              'venues' => $venues
                          ));
         break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo 'Unknown action';

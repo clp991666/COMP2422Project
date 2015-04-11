@@ -44,7 +44,7 @@
                     <li><a href="myBookings.html">My Bookings</a></li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="#" class="text-right">Sign Out <span id="info_user"></span></a>
+                    <li><a id="info_user" href="#" class="text-right">Sign In</a>
                     </li>
                 </ul>
             </div>
@@ -132,13 +132,15 @@
         $.ajax({
             url: 'do.php?action=info',
             success: function (data) {
-                $('#info_user').text('(' + data.info_user + ')');
+                $('#info_user').text('Sign Out (' + data.info_user + ')').attr('href', 'do.php?action=logout');
                 $('#info_today').text(data.info_today);
                 $('#info_balance').text('$ ' + data.info_balance);
+                $("#type").trigger("change");
+            }, error: function () {
+                alert('Please login first!');
+                window.location = 'login.html';
             }
-        })
-
-        $("#type").trigger("change");
+        });
 
     </script>
 </body>

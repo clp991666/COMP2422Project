@@ -47,7 +47,7 @@
                 </ul>
 
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="#" class="text-right">Sign Out</a></li>
+                    <li><a id="info_user" href="#" class="text-right">Sign In</a></li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -124,5 +124,17 @@
         </div>
     </div>
 
+    <script type="text/javascript">
+
+        $.ajax({
+            url: 'do.php?action=info',
+            success: function (data) {
+                $('#info_user').text('Sign Out (' + data.info_user + ')').attr('href', 'do.php?action=logout');
+            }, error: function () {
+                $('#info_user').text('Sign In').attr('href', 'login.html');
+            }
+        });
+
+    </script>
 </body>
 </html>
