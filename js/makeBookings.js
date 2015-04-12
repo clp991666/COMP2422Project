@@ -23,18 +23,28 @@ function clearSelection() {
     displaySelected();
 }
 
-function getSelectionAsArray() {
+function getSelectionAsArray(serialize) {
     var arr = [];
+    var activity = $("#type").val();
     for (var k in selected) {
         var key = k.split('|');
-        for (var i = 0; i < selected[k].length; i++)
-            arr.push({
+        for (var i = 0; i < selected[k].length; i++) {
+            var item = {
                 venue: key[0],
                 date: key[1],
                 time: key[2],
                 court: selected[k][i],
                 d: Date.parseExact(key[1] + key[2], 'yyyy-MM-ddHH:mm')
-            });
+            };
+            if (!serialize) {
+                item.fee = $.grep(records.venues[key[0]][key[1]][key[2]], function (x) {
+                    return x.court == selected[k][i];
+                })[0].fee;
+            } else {
+                item.activity = activity;
+            }
+            arr.push(item);
+        }
     }
     arr.sort(function (a, b) {
         return a.d.getTime() != +b.d.getTime() ? (a.d < b.d ? -1 : 1) :
@@ -64,7 +74,7 @@ function selectSlot(target, courts) {
     if (courts == null) {
         var previous = getSlotSelection(centre, date, time);
         if (previous) { // previously selected
-            if (previous.length == 1 && previous[0] == records.venues[centre][date][time][0])
+            if (previous.length == 1 && previous[0] == records.venues[centre][date][time][0].court)
             // if default selection then toggle
                 setSlotSelection(centre, date, time, null);
             else {
@@ -73,7 +83,7 @@ function selectSlot(target, courts) {
                 return dropdown(target.find('ul.dropdown-menu'));
             }
         } else { // not selected
-            setSlotSelection(centre, date, time, [records.venues[centre][date][time][0]]);
+            setSlotSelection(centre, date, time, [records.venues[centre][date][time][0].court]);
         }
     } else {
         setSlotSelection(centre, date, time, courts);
@@ -96,10 +106,13 @@ function displaySelected() {
     var target = $("#display");
     target.empty();
     var selection = getSelectionAsArray();
+    var totalfee = 0;
     for (var k = 0; k < selection.length; k++) {
         var x = selection[k];
+        totalfee += x.fee;
         var s = x.d.toString('yyyy-MM-dd (ddd) HH:mm')
-            + x.d.clone().add({ hours: 1 }).toString('-HH:mm<br/>')
+            + x.d.clone().add({ hours: 1 }).toString('-HH:mm')
+            + '<span style="float:right">$' + x.fee + '</span><br/>'
             + x.venue
             + " "
             + x.court;
@@ -108,6 +121,8 @@ function displaySelected() {
 
     if (target.children().length == 0)
         target.append('<li class="list-group-item">Please select a time slot.</li>');
+    else
+        target.append($('<li class="list-group-item" style="text-align: right"></li>').text('Total $' + totalfee));
 }
 
 function selectCourt(target, court) {
@@ -182,7 +197,7 @@ function populateTimetables(data, selecttable) {
             },
             function (d, t, court) {
                 var key = d + " " + t;
-                return selected.hasOwnProperty(key) && selected[key].indexOf(court >= 0);
+                return selected.hasOwnProperty(key) && selected[key].indexOf(court) >= 0;
             });
     }
 
@@ -238,9 +253,9 @@ function populateDropdown(ul, list, itemCheckedCallback) {
         var li = $('<li role="presentation"></li>')
             .appendTo(ul)
             .append('<a role="menuitem" onclick="event.stopPropagation(); selectCourt($(this).parents(\'td\')[0], this.parentNode.getAttribute(\'court\')); return false;"></a>')
-            .attr('court', list[k]);
-        li.find('a').text(list[k]);
-        if (itemCheckedCallback(list[k]))
+            .attr('court', list[k].court);
+        li.find('a').text(list[k].court + ' ($' + list[k].fee + ')');
+        if (itemCheckedCallback(list[k].court))
             li.addClass('checked');
     }
 }
@@ -278,12 +293,12 @@ function book() {
     $.ajax({
         url: 'do.php?action=book',
         method: 'POST',
-        data: { selection: selected },
+        data: { selection: JSON.stringify(getSelectionAsArray(true)) },
         success: function () {
-
+            window.location = 'successBooking.html';
         },
         error: function (xhr, status, error) {
-
+            alert('Fail to process the booking:\n' + xhr.responseText);
         }
     });
 }

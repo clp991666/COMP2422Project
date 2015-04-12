@@ -93,8 +93,10 @@ switch ($action) {
                 foreach ($times as $time) {
                     for ($court = 1; $court <= 10; $court++) {
                         $c = $prefix . sprintf('%02d', $court);
-                        if (!isset($booked["$date $time:00|$venue|$c"]))
-                            $courts[$date][$time][] = $c;
+                        if (!isset($booked["$date $time:00|$venue|$c"])) {
+                            $a = date_parse($time);
+                            $courts[$date][$time][] = array('court' => $c, 'fee' => $a['hour'] < 11 ? 0 : 10);
+                        }
                     }
                 }
             }
@@ -106,6 +108,65 @@ switch ($action) {
                              'times'  => $times,
                              'venues' => $venues
                          ));
+        break;
+
+    case 'book':
+
+        session_start();
+        if (isset($_SESSION['uid'])) {
+
+            $selection = json_decode($_POST['selection'], true);
+            db::autocommit(false);
+
+            $sql = db::prepare("INSERT INTO [bookings] (user, time, activity, venue, court) VALUES (?,?,?,?,?)");
+            $err = array();
+            $totalfee = 0;
+            foreach ($selection as $item) {
+                $fee = date_parse($item['time']);
+                $totalfee += $fee['hour'] < 11 ? 0 : 10;
+                $sql->bind_param('sssss',
+                                 $_SESSION['uid'],
+                                 $temp = $item['date'] . ' ' . $item['time'],
+                                 $item['activity'],
+                                 $item['venue'],
+                                 $item['court']);
+                if (!$sql->execute()) {
+                    if ($sql->errno == 1062) {
+                        $err[] = $item;
+                    } else {
+                        $err = $sql->error;
+                        break;
+                    }
+                }
+            }
+
+            if (is_array($err) && count($err) > 0) {
+                db::rollback();
+                header('HTTP/1.1 409 Conflict');
+                echo "Some time slots have been booked by others:\n\n";
+                foreach ($err as $item)
+                    echo "{$item['date']} {$item['time']}\n{$item['activity']} {$item['venue']} {$item['court']}\n";
+                echo "\nChanges have NOT been applied, please submit again.";
+            } else if (is_string($err)) {
+                db::rollback();
+                header('HTTP/1.1 500 Internal Server Error');
+                echo "Database return:\n\n$err";
+            } else {
+                $sql = db::prepare("UPDATE [users] SET deposit = deposit - $totalfee WHERE id = ?");
+                $sql->bind_param('s', $_SESSION['uid']);
+                if (!$sql->execute()) {
+                    db::rollback();
+                    header('HTTP/1.1 500 Internal Server Error');
+                    echo "Database return:\n\n" . $sql->error;
+                } else {
+                    db::commit();
+                }
+            }
+        } else {
+            header('HTTP/1.1 403 Unauthorized');
+            echo 'Session expired. Please log in again.';
+        }
+
         break;
 
     default:
