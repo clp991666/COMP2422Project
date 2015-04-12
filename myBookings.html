@@ -22,6 +22,65 @@
             vertical-align : middle;
         }
     </style>
+
+    <script>
+        var currentBooking;
+        function registerBooking(target, modal) {
+            currentBooking = $(target);
+            $(modal).find('[data-id=label]').text(
+                    currentBooking.attr('data-date') + ' ' +
+                    currentBooking.attr('data-time') + ' ' +
+                    currentBooking.attr('data-activity') + ' ' +
+                    currentBooking.attr('data-venue') + ' ' +
+                    currentBooking.attr('data-court'));
+        }
+
+        function transferBooking(to) {
+            $.ajax({
+                url: 'do.php?action=transfer',
+                method: 'POST',
+                data: {
+                    to: to,
+                    booking: {
+                        date: currentBooking.attr('data-date'),
+                        time: currentBooking.attr('data-time'),
+                        activity: currentBooking.attr('data-activity'),
+                        venue: currentBooking.attr('data-venue'),
+                        court: currentBooking.attr('data-court')
+                    }
+                },
+                success: function (data) {
+                    currentBooking.remove();
+                    $(".page-header").prepend('<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>The booking is successfully transferred to ' + to + '.</div>')
+                },
+                error: function (xhr, status, error) {
+                    alert('Cannot transfer:\n\n' + xhr.responseText);
+                }
+            });
+        }
+        function cancelBooking() {
+            $.ajax({
+                url: 'do.php?action=cancel',
+                method: 'POST',
+                data: {
+                    booking: {
+                        date: currentBooking.attr('data-date'),
+                        time: currentBooking.attr('data-time'),
+                        activity: currentBooking.attr('data-activity'),
+                        venue: currentBooking.attr('data-venue'),
+                        court: currentBooking.attr('data-court')
+                    }
+                },
+                success: function (data) {
+                    currentBooking.remove();
+                    $(".page-header").prepend('<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>The booking is successfully cancelled.</div>')
+                },
+                error: function (xhr, status, error) {
+                    alert('Cannot transfer:\n\n' + xhr.responseText);
+                }
+            });
+        }
+    </script>
 </head>
 <body>
 

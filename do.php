@@ -118,23 +118,25 @@ switch ($action) {
             $selection = json_decode($_POST['selection'], true);
             db::autocommit(false);
 
-            $sql = db::prepare("INSERT INTO [bookings] (user, time, activity, venue, court) VALUES (?,?,?,?,?)");
+            $query = db::prepare("INSERT INTO [bookings] (user, time, activity, venue, court, fee) VALUES (?,?,?,?,?,?)");
             $err = array();
             $totalfee = 0;
             foreach ($selection as $item) {
                 $fee = date_parse($item['time']);
-                $totalfee += $fee['hour'] < 11 ? 0 : 10;
-                $sql->bind_param('sssss',
-                                 $_SESSION['uid'],
-                                 $temp = $item['date'] . ' ' . $item['time'],
-                                 $item['activity'],
-                                 $item['venue'],
-                                 $item['court']);
-                if (!$sql->execute()) {
-                    if ($sql->errno == 1062) {
+                $fee = $fee['hour'] < 11 ? 0 : 10;
+                $totalfee += $fee;
+                $query->bind_param('sssssi',
+                                   $_SESSION['uid'],
+                                   $temp = $item['date'] . ' ' . $item['time'],
+                                   $item['activity'],
+                                   $item['venue'],
+                                   $item['court'],
+                                   $fee);
+                if (!$query->execute()) {
+                    if ($query->errno == 1062) {
                         $err[] = $item;
                     } else {
-                        $err = $sql->error;
+                        $err = $query->error;
                         break;
                     }
                 }
@@ -159,11 +161,11 @@ switch ($action) {
                     header('HTTP/1.1 409 Conflict');
                     echo "You do not have enough deposit.";
                 } else {
-                    $sql = db::prepare("UPDATE [users] SET deposit = deposit - $totalfee WHERE id = '$u'");
-                    if (!$sql->execute()) {
+                    $query = db::prepare("UPDATE [users] SET deposit = deposit - $totalfee WHERE id = '$u'");
+                    if (!$query->execute()) {
                         db::rollback();
                         header('HTTP/1.1 500 Internal Server Error');
-                        echo "Database return:\n\n" . $sql->error;
+                        echo "Database return:\n\n" . $query->error;
                     } else {
                         db::commit();
                     }
@@ -194,6 +196,46 @@ switch ($action) {
             }
             header('content-type: application/json');
             echo json_encode($arr);
+        } else {
+            header('HTTP/1.1 403 Unauthorized');
+            echo 'Session expired. Please log in again.';
+        }
+        break;
+
+    case 'cancel':
+
+        session_start();
+        if (isset($_SESSION['uid'])) {
+            $b = $_POST['booking'];
+            db::autocommit(false);
+            $result = db::query("SELECT fee FROM [bookings]
+                                 WHERE user = '" . db::escape($_SESSION['uid']) . "'
+                                   AND time = '" . db::escape($b['date'] . ' ' . $b['time']) . ":00'
+                                   AND activity = '" . db::escape($b['activity']) . "'
+                                   AND venue = '" . db::escape($b['venue']) . "'
+                                   AND court = '" . db::escape($b['court']) . "'");
+            if (!$result || $result->num_rows == 0) {
+                header('HTTP/1.1 404 Not Found');
+                echo 'Cannot find record.';
+                break;
+            }
+            $fee = $result->fetch_row();
+            $fee = $fee[0];
+            $result = db::query("DELETE FROM [bookings]
+                                 WHERE user = '" . db::escape($_SESSION['uid']) . "'
+                                   AND time = '" . db::escape($b['date'] . ' ' . $b['time']) . ":00'
+                                   AND activity = '" . db::escape($b['activity']) . "'
+                                   AND venue = '" . db::escape($b['venue']) . "'
+                                   AND court = '" . db::escape($b['court']) . "'");
+            if ($result && db::$mysqli->affected_rows > 0) {
+                if (!db::query("UPDATE [users] SET deposit = deposit + $fee WHERE id = '" . db::escape($_SESSION['uid']) . "'")) {
+                    db::rollback();
+                    header('HTTP/1.1 500 Internal Server Error');
+                    echo db::$mysqli->error;
+                    break;
+                }
+                db::commit();
+            }
         } else {
             header('HTTP/1.1 403 Unauthorized');
             echo 'Session expired. Please log in again.';
