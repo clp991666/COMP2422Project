@@ -32,6 +32,18 @@ class db
     public static function escape($escapestr) {
         return self::$mysqli->real_escape_string($escapestr);
     }
+
+    public static function commit() {
+        return self::$mysqli->commit();
+    }
+
+    public static function rollback() {
+        return self::$mysqli->rollback();
+    }
+
+    public static function autocommit($mode) {
+        return self::$mysqli->autocommit($mode);
+    }
 }
 
 db::init();
