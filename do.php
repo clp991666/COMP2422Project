@@ -152,14 +152,21 @@ switch ($action) {
                 header('HTTP/1.1 500 Internal Server Error');
                 echo "Database return:\n\n$err";
             } else {
-                $sql = db::prepare("UPDATE [users] SET deposit = deposit - $totalfee WHERE id = ?");
-                $sql->bind_param('s', $_SESSION['uid']);
-                if (!$sql->execute()) {
+                $u = db::escape($_SESSION['uid']);
+                $result = db::query("SELECT deposit FROM [users] WHERE id = '$u'")->fetch_row();
+                if ($result[0] - $totalfee < 0) {
                     db::rollback();
-                    header('HTTP/1.1 500 Internal Server Error');
-                    echo "Database return:\n\n" . $sql->error;
+                    header('HTTP/1.1 409 Conflict');
+                    echo "You do not have enough deposit.";
                 } else {
-                    db::commit();
+                    $sql = db::prepare("UPDATE [users] SET deposit = deposit - $totalfee WHERE id = '$u'");
+                    if (!$sql->execute()) {
+                        db::rollback();
+                        header('HTTP/1.1 500 Internal Server Error');
+                        echo "Database return:\n\n" . $sql->error;
+                    } else {
+                        db::commit();
+                    }
                 }
             }
         } else {
