@@ -176,6 +176,30 @@ switch ($action) {
 
         break;
 
+    case 'booked':
+
+        session_start();
+        if (isset($_SESSION['uid'])) {
+            $result = db::query("SELECT time, activity, venue, court FROM [bookings]
+                                 WHERE user = '" . db::escape($_SESSION['uid']) . "'
+                                   AND time >= now()
+                                 ORDER BY time DESC");
+            $arr = array();
+            while ($row = $result->fetch_assoc()) {
+                $time = strtotime($row['time']);
+                $row['date'] = date('Y-m-d', $time);
+                $row['time'] = date('H:i', $time);
+                $row['time1'] = date('H:i', $time + 60 * 60);
+                $arr[] = $row;
+            }
+            header('content-type: application/json');
+            echo json_encode($arr);
+        } else {
+            header('HTTP/1.1 403 Unauthorized');
+            echo 'Session expired. Please log in again.';
+        }
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo 'Unknown action';

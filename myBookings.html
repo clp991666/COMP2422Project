@@ -9,7 +9,6 @@
 
     <!-- jQuery library -->
     <script src="js/jquery-2.1.3.js"></script>
-    <script src="js/customFunction.js"></script>
 
     <!-- Latest compiled JavaScript -->
     <script src="js/bootstrap.js"></script>
@@ -74,67 +73,36 @@
                         <th></th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr id="booking1">
-                        <td>03-04-2015</td>
-                        <td>9:30-10:30</td>
-                        <td>Badminton</td>
-                        <td>Shaw</td>
-                        <td>3</td>
-                        <td>
-                            <div class="btn-group" role="group" aria-label="...">
-                                <button type="button" class="btn btn-default" data-toggle="modal"
-                                        data-target="#tranferModal" onclick=registerBooking(this)>Transfer
-                                </button>
-                                <button type="button" class="btn btn-default" data-toggle="modal"
-                                        data-target="#cancelModal" onclick=registerBooking(this)>Cancel
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr id="booking2">
-                        <td>03-04-2015</td>
-                        <td>9:30-10:30</td>
-                        <td>Badminton</td>
-                        <td>Shaw</td>
-                        <td>2</td>
-                        <td>
-                            <div class="btn-group" role="group" aria-label="...">
-                                <button type="button" class="btn btn-default" data-toggle="modal"
-                                        data-target="#tranferModal" onclick=registerBooking(this)>Transfer
-                                </button>
-                                <button type="button" class="btn btn-default" data-toggle="modal"
-                                        data-target="#cancelModal" onclick=registerBooking(this)>Cancel
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+                    <tbody id="info_bookings">
                     </tbody>
                 </table>
             </div>
 
             <!-- Modal -->
-            <div class="modal fade" id="tranferModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+            <div class="modal fade" id="transferModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
                  aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
                                     aria-hidden="true">&times;</span></button>
-                            <h4 class="modal-title" id="myModalLabel">Tranfer Booking</h4>
+                            <h4 class="modal-title">Transfer Booking</h4>
                         </div>
                         <div class="modal-body">
                             <form class="form-inline">
+                                Transfer booking<br />
+                                <label data-id="label"></label><br />
+
                                 <div class="form-group">
-                                    <label for="exampleInputName2">User ID: </label>
-                                    <input type="text" class="form-control" id="exampleInputName2"
-                                           placeholder="12345678d">
+                                    <label for="transferTo">to User: </label>
+                                    <input type="text" class="form-control" id="transferTo"
+                                           placeholder="User ID / Staff ID">
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button id="transferButton" type="button" class="btn btn-primary"
-                                    onclick=dismissBooking("transfered") data-dismiss="modal">Transfer
+                            <button type="button" class="btn btn-primary"
+                                    onclick="transferBooking($('#transferTo').val())" data-dismiss="modal">Transfer
                             </button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                         </div>
@@ -149,14 +117,15 @@
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
                                     aria-hidden="true">&times;</span></button>
-                            <h4 class="modal-title" id="myModalLabel">Cancel Booking</h4>
+                            <h4 class="modal-title">Cancel Booking</h4>
                         </div>
                         <div class="modal-body">
-                            Do you want to cancel the booking?
+                            Do you want to cancel the booking?<br />
+                            <label data-id="label"></label>
                         </div>
                         <div class="modal-footer">
-                            <button id="transferButton" type="button" class="btn btn-primary"
-                                    onclick=dismissBooking("cancelled") data-dismiss="modal">Yes
+                            <button type="button" class="btn btn-primary"
+                                    onclick="cancelBooking()" data-dismiss="modal">Yes
                             </button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
                         </div>
@@ -176,6 +145,35 @@
             }, error: function () {
                 alert('Session expired. Please login again.');
                 window.location = 'login.html';
+            }
+        });
+        $.ajax({
+            url: 'do.php?action=booked',
+            success: function (data) {
+                var tbody = $('#info_bookings');
+                tbody.empty();
+                for (var i = 0; i < data.length; i++) {
+                    $('<tr></tr>')
+                            .attr('data-date', data[i].date)
+                            .attr('data-time', data[i].time)
+                            .attr('data-activity', data[i].activity)
+                            .attr('data-venue', data[i].venue)
+                            .attr('data-court', data[i].court)
+                            .append($('<td></td>').text(data[i].date))
+                            .append($('<td></td>').text(data[i].time + '-' + data[i].time1))
+                            .append($('<td></td>').text(data[i].activity))
+                            .append($('<td></td>').text(data[i].venue))
+                            .append($('<td></td>').text(data[i].court))
+                            .append($('<td></td>')
+                                    .append($('<div class="btn-group" role="group" aria-label="..."></div>')
+                                            .append($('<button type="button" class="btn btn-default" data-toggle="modal" data-target="#transferModal"></button>')
+                                                    .attr('onclick', 'registerBooking(this.parentNode.parentNode.parentNode, "#transferModal")')
+                                                    .text('Transfer'))
+                                            .append($('<button type="button" class="btn btn-default" data-toggle="modal" data-target="#cancelModal"></button>')
+                                                    .attr('onclick', 'registerBooking(this.parentNode.parentNode.parentNode, "#cancelModal")')
+                                                    .text('Cancel'))))
+                            .appendTo(tbody);
+                }
             }
         });
 
