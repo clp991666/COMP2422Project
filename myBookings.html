@@ -52,6 +52,7 @@
                 success: function (data) {
                     currentBooking.remove();
                     $(".page-header").prepend('<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>The booking is successfully transferred to ' + to + '.</div>')
+                    $('#transferModal').modal('hide');
                 },
                 error: function (xhr, status, error) {
                     alert('Cannot transfer:\n\n' + xhr.responseText);
@@ -161,7 +162,8 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary"
-                                    onclick="transferBooking($('#transferTo').val())" data-dismiss="modal">Transfer
+                                    onclick="transferBooking($('#transferTo').val())">
+                                Transfer
                             </button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                         </div>

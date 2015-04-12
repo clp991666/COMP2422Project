@@ -242,6 +242,33 @@ switch ($action) {
         }
         break;
 
+    case 'transfer':
+
+        session_start();
+        if (isset($_SESSION['uid'])) {
+            $b = $_POST['booking'];
+
+            $result = db::query("UPDATE [bookings] SET user = '" . db::escape($_POST['to']) . "'
+                                 WHERE time = '" . db::escape($b['date'] . ' ' . $b['time']) . ":00'
+                                   AND activity = '" . db::escape($b['activity']) . "'
+                                   AND venue = '" . db::escape($b['venue']) . "'
+                                   AND court = '" . db::escape($b['court']) . "'");
+            if ($result && db::$mysqli->affected_rows > 0) {
+            } else if ($result && db::$mysqli->affected_rows == 0) {
+                header('HTTP/1.1 400 Bad Request');
+                echo "Cannot transfer to yourself.";
+                break;
+            } else if (db::$mysqli->errno == 1452) {
+                header('HTTP/1.1 400 Bad Request');
+                echo "'{$_POST['to']}' is not a valid ID.";
+                break;
+            }
+        } else {
+            header('HTTP/1.1 403 Unauthorized');
+            echo 'Session expired. Please log in again.';
+        }
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo 'Unknown action';
